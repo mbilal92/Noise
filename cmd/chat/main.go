@@ -5,14 +5,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/perlin-network/noise"
-	"github.com/perlin-network/noise/kademlia"
-	"github.com/spf13/pflag"
 	"io"
 	"os"
 	"os/signal"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
+
+	"github.com/perlin-network/noise"
+	"github.com/perlin-network/noise/kademlia"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -48,10 +51,17 @@ func main() {
 	// Parse flags/options.
 	pflag.Parse()
 
+	logger, err := zap.NewDevelopment(zap.AddStacktrace(zap.PanicLevel))
+	if err != nil {
+		panic(err)
+	}
+	defer logger.Sync()
+
 	// Create a new configured node.
 	node, err := noise.NewNode(
 		noise.WithNodeBindHost(*hostFlag),
 		noise.WithNodeBindPort(*portFlag),
+		noise.WithNodeLogger(logger),
 		noise.WithNodeAddress(*addressFlag),
 	)
 	check(err)
