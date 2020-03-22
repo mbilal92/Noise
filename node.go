@@ -4,14 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/oasislabs/ed25519"
-	"go.uber.org/atomic"
-	"go.uber.org/zap"
 	"net"
 	"runtime"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/oasislabs/ed25519"
+	"go.uber.org/atomic"
+	"go.uber.org/zap"
 )
 
 // Node keeps track of a users ID, all of a users outgoing/incoming connections to/from peers as *Client instances
@@ -63,7 +64,7 @@ func NewNode(opts ...NodeOption) (*Node, error) {
 	n := &Node{
 		listenerDone: make(chan error, 1),
 
-		maxDialAttempts:        3,
+		maxDialAttempts:        10,
 		maxInboundConnections:  128,
 		maxOutboundConnections: 128,
 		maxRecvMessageSize:     4 << 20,
@@ -224,6 +225,7 @@ func (n *Node) Listen() error {
 			}
 
 			addr := conn.RemoteAddr().String()
+			n.logger.Info("Incoming Peer ", zap.String("Peer Addr", addr))
 
 			client, exists := n.inbound.get(n, addr)
 			if !exists {
