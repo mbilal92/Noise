@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/signal"
 	"strings"
@@ -46,6 +47,22 @@ func check(err error) {
 // printedLength is the total prefix length of a public key associated to a chat users ID.
 const printedLength = 8
 
+func GetLocalIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ""
+	}
+	for _, address := range addrs {
+		// check the address type and if it is not a loopback the display it
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String()
+			}
+		}
+	}
+	return ""
+}
+
 // An example chat application on Noise.
 func main() {
 	// Parse flags/options.
@@ -58,11 +75,12 @@ func main() {
 	defer logger.Sync()
 
 	// Create a new configured node.
+	localIP := GetLocalIP()
 	node, err := noise.NewNode(
-		noise.WithNodeBindHost(*hostFlag),
-		noise.WithNodeBindPort(*portFlag),
+		noise.WithNodeBindHost(localIP),
+		noise.WithNodeBindPort(22001),
 		noise.WithNodeLogger(logger),
-		noise.WithNodeAddress(*addressFlag),
+		// noise.WithNodeAddress(*addressFlag),
 	)
 	check(err)
 
@@ -179,7 +197,7 @@ func help(node *noise.Node) {
 // bootstrap pings and dials an array of network addresses which we may interact with and  discover peers from.
 func bootstrap(node *noise.Node, addresses ...string) {
 	for _, addr := range addresses {
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		_, err := node.Ping(ctx, addr)
 		cancel()
 
@@ -227,6 +245,8 @@ func chat(node *noise.Node, overlay *kademlia.Protocol, line string) {
 	case "/peers":
 		peers(overlay)
 		return
+	// case "/ping":
+	// 	input(func(line string)
 	default:
 	}
 
