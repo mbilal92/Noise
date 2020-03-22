@@ -496,7 +496,8 @@ func (c *Client) handshake() {
 	}
 
 	c.id = id
-	c.id.Host = net.ParseIP(c.addr)
+	// c.id.Host = net.ParseIP(c.addr)
+
 	c.SetLogger(c.Logger().With(
 		zap.String("peer_id", id.ID.String()),
 		zap.String("peer_addr", id.Address),

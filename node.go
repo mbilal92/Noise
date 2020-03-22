@@ -64,7 +64,7 @@ func NewNode(opts ...NodeOption) (*Node, error) {
 	n := &Node{
 		listenerDone: make(chan error, 1),
 
-		maxDialAttempts:        10,
+		maxDialAttempts:        3,
 		maxInboundConnections:  128,
 		maxOutboundConnections: 128,
 		maxRecvMessageSize:     4 << 20,
