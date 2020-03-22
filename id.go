@@ -34,7 +34,7 @@ func NewID(id PublicKey, host net.IP, port uint16) ID {
 
 // Size returns the number of bytes this ID comprises of.
 func (e ID) Size() int {
-	return len(e.ID) + net.IPv6len + 2
+	return len(e.ID) + net.IPv4len + 2
 }
 
 // String returns a JSON representation of this ID.
@@ -53,8 +53,8 @@ func (e ID) Marshal() []byte {
 	buf := make([]byte, e.Size())
 
 	copy(buf[:len(e.ID)], e.ID[:])
-	copy(buf[len(e.ID):len(e.ID)+net.IPv6len], e.Host)
-	binary.BigEndian.PutUint16(buf[len(e.ID)+net.IPv6len:len(e.ID)+net.IPv6len+2], e.Port)
+	copy(buf[len(e.ID):len(e.ID)+net.IPv4len], e.Host)
+	binary.BigEndian.PutUint16(buf[len(e.ID)+net.IPv4len:len(e.ID)+net.IPv4len+2], e.Port)
 
 	return buf
 }
@@ -71,14 +71,14 @@ func UnmarshalID(buf []byte) (ID, error) {
 	copy(id[:], buf[:SizePublicKey])
 	buf = buf[SizePublicKey:]
 
-	if len(buf) < net.IPv6len {
+	if len(buf) < net.IPv4len {
 		return ID{}, io.ErrUnexpectedEOF
 	}
 
-	host := make([]byte, net.IPv6len)
-	copy(host, buf[:net.IPv6len])
+	host := make([]byte, net.IPv4len)
+	copy(host, buf[:net.IPv4len])
 
-	buf = buf[net.IPv6len:]
+	buf = buf[net.IPv4len:]
 
 	if len(buf) < 2 {
 		return ID{}, io.ErrUnexpectedEOF
