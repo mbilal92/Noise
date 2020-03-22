@@ -9,11 +9,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"go.uber.org/zap"
 	"io"
 	"net"
 	"sync"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type clientSide bool
@@ -495,7 +496,7 @@ func (c *Client) handshake() {
 	}
 
 	c.id = id
-
+	c.id.Host = net.ParseIP(c.addr)
 	c.SetLogger(c.Logger().With(
 		zap.String("peer_id", id.ID.String()),
 		zap.String("peer_addr", id.Address),
