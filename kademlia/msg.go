@@ -2,8 +2,9 @@ package kademlia
 
 import (
 	"fmt"
-	"github.com/perlin-network/noise"
 	"io"
+
+	"github.com/mbilal92/noise"
 )
 
 // Ping represents an empty ping message.

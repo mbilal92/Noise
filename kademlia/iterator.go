@@ -2,10 +2,11 @@ package kademlia
 
 import (
 	"context"
-	"github.com/perlin-network/noise"
-	"go.uber.org/zap"
 	"sync"
 	"time"
+
+	"github.com/mbilal92/noise"
+	"go.uber.org/zap"
 )
 
 // Iterator represents a S/Kademlia overlay network iterator over all peers that may be discovered in the network. It

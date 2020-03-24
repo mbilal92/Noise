@@ -6,9 +6,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/perlin-network/noise"
-	"go.uber.org/zap"
 	"time"
+
+	"github.com/mbilal92/noise"
+	"go.uber.org/zap"
 )
 
 // BucketSize returns the capacity, or the total number of peer ID entries a single routing table bucket may hold.

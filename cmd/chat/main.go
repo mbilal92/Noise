@@ -14,8 +14,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/perlin-network/noise"
-	"github.com/perlin-network/noise/kademlia"
+	"github.com/mbilal92/noise"
+	"github.com/mbilal92/noise/kademlia"
+	"github.com/mbilal92/noise/payload"
 	"github.com/spf13/pflag"
 )
 
@@ -26,15 +27,26 @@ var (
 )
 
 type chatMessage struct {
+	From     noise.ID
 	contents string
 }
 
 func (m chatMessage) Marshal() []byte {
-	return []byte(m.contents)
+	writer := payload.NewWriter(nil)
+	writer.Write(m.From.Marshal())
+	writer.Write([]byte(m.contents))
+	return writer.Bytes()
+}
+
+func (m chatMessage) String() string {
+	return m.From.String() + " msg: " + m.contents
 }
 
 func unmarshalChatMessage(buf []byte) (chatMessage, error) {
-	return chatMessage{contents: strings.ToValidUTF8(string(buf), "")}, nil
+	msg := chatMessage{}
+	msg.From, _ = noise.UnmarshalID(buf)
+	msg.contents = string(buf[msg.From.Size():])
+	return msg, nil
 }
 
 // check panics if err is not nil.
@@ -78,7 +90,7 @@ func main() {
 	localIP := GetLocalIP()
 	node, err := noise.NewNode(
 		noise.WithNodeBindHost(localIP),
-		noise.WithNodeBindPort(22001),
+		noise.WithNodeBindPort(*portFlag),
 		noise.WithNodeLogger(logger),
 		// noise.WithNodeAddress(*addressFlag),
 	)
@@ -162,10 +174,6 @@ func input(callback func(string)) {
 
 // handle handles and prints out valid chat messages from peers.
 func handle(ctx noise.HandlerContext) error {
-	if ctx.IsRequest() {
-		return nil
-	}
-
 	obj, err := ctx.DecodeMessage()
 	if err != nil {
 		return nil
@@ -180,7 +188,14 @@ func handle(ctx noise.HandlerContext) error {
 		return nil
 	}
 
-	fmt.Printf("%s(%s)> %s\n", ctx.ID().Address, ctx.ID().ID.String()[:printedLength], msg.contents)
+	fmt.Printf("%s(%s)> %s\n", ctx.ID().Address, ctx.ID().ID.String()[:printedLength], msg.String())
+
+	if ctx.IsRequest() {
+		msg2 := chatMessage{}
+		msg2.From = ctx.ID()
+		msg2.contents = "GOT: " + msg.contents
+		return ctx.SendMessage(msg2)
+	}
 
 	return nil
 }
@@ -245,8 +260,26 @@ func chat(node *noise.Node, overlay *kademlia.Protocol, line string) {
 	case "/peers":
 		peers(overlay)
 		return
-	// case "/ping":
-	// 	input(func(line string)
+	case "/request":
+		for _, id := range overlay.Table().Peers() {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			msg := chatMessage{}
+			msg.From = node.ID()
+			msg.contents = line
+			msg2, err := node.RequestMessage(ctx, id.Address, msg)
+			if err != nil {
+				fmt.Printf("Failed to send message to %s(%s). Skipping... [error: %s]\n",
+					id.Address,
+					id.ID.String()[:printedLength],
+					err,
+				)
+				continue
+			} else {
+				fmt.Printf("Got Response from %v data %v", msg2.(chatMessage).From, msg2.(chatMessage).contents)
+			}
+			cancel()
+		}
+		return
 	default:
 	}
 
@@ -257,7 +290,10 @@ func chat(node *noise.Node, overlay *kademlia.Protocol, line string) {
 
 	for _, id := range overlay.Table().Peers() {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		err := node.SendMessage(ctx, id.Address, chatMessage{contents: line})
+		msg := chatMessage{}
+		msg.From = node.ID()
+		msg.contents = line
+		err := node.SendMessage(ctx, id.Address, msg)
 		cancel()
 
 		if err != nil {

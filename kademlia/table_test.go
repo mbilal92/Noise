@@ -2,12 +2,13 @@ package kademlia
 
 import (
 	"encoding/binary"
-	"github.com/perlin-network/noise"
-	"github.com/stretchr/testify/assert"
 	"math"
 	"math/rand"
 	"net"
 	"testing"
+
+	"github.com/mbilal92/noise"
+	"github.com/stretchr/testify/assert"
 )
 
 // TestDistanceMetric demonstrates the connectivity of a network where peers have routing tables defined under the

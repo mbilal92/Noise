@@ -4,14 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/perlin-network/noise"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/goleak"
 	"io"
 	"net"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/mbilal92/noise"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/goleak"
 )
 
 func TestSendUnderMaxNumConnections(t *testing.T) {

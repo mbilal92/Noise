@@ -3,8 +3,9 @@ package noise_test
 import (
 	"context"
 	"fmt"
-	"github.com/perlin-network/noise"
 	"sync"
+
+	"github.com/mbilal92/noise"
 )
 
 // This example demonstrates how to send and receive raw bytes across peers, how to listen for incoming peers, and

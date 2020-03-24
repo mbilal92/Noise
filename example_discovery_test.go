@@ -3,8 +3,9 @@ package noise_test
 import (
 	"context"
 	"fmt"
-	"github.com/perlin-network/noise"
-	"github.com/perlin-network/noise/kademlia"
+
+	"github.com/mbilal92/noise"
+	"github.com/mbilal92/noise/kademlia"
 )
 
 // This example demonstrates how to use Kademlia to have three peers Alice, Charlie and bob discover

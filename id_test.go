@@ -2,13 +2,14 @@ package noise_test
 
 import (
 	"fmt"
-	"github.com/perlin-network/noise"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net"
 	"strconv"
 	"testing"
 	"testing/quick"
+
+	"github.com/mbilal92/noise"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestID_String(t *testing.T) {

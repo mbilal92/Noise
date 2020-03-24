@@ -2,12 +2,13 @@ package kademlia_test
 
 import (
 	"context"
-	"github.com/perlin-network/noise"
-	"github.com/perlin-network/noise/kademlia"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/goleak"
 	"sync"
 	"testing"
+
+	"github.com/mbilal92/noise"
+	"github.com/mbilal92/noise/kademlia"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/goleak"
 )
 
 func merge(clients ...[]*noise.Client) []*noise.Client {

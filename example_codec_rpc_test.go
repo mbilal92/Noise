@@ -3,7 +3,8 @@ package noise_test
 import (
 	"context"
 	"fmt"
-	"github.com/perlin-network/noise"
+
+	"github.com/mbilal92/noise"
 )
 
 // This example demonstrates sending registered serialized Go types as requests, decoding registered serialized

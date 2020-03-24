@@ -2,9 +2,10 @@ package kademlia
 
 import (
 	"bytes"
-	"github.com/perlin-network/noise"
 	"math/bits"
 	"sort"
+
+	"github.com/mbilal92/noise"
 )
 
 // XOR allocates a new byte slice with the computed result of XOR(a, b).

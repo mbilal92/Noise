@@ -1,4 +1,4 @@
-module github.com/perlin-network/noise
+module github.com/mbilal92/noise
 
 go 1.13
 
@@ -6,6 +6,7 @@ require (
 	github.com/VictoriaMetrics/fastcache v1.5.7
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412
 	github.com/oasislabs/ed25519 v0.0.0-20191122104632-9d9ffc15f526
+	github.com/pkg/errors v0.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
 	go.uber.org/atomic v1.5.1

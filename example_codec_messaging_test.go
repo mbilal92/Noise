@@ -3,9 +3,10 @@ package noise_test
 import (
 	"context"
 	"fmt"
-	"github.com/perlin-network/noise"
 	"strings"
 	"sync"
+
+	"github.com/mbilal92/noise"
 )
 
 // ChatMessage is an example struct that is registered on example nodes, and serialized/deserialized on-the-fly.
