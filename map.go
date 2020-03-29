@@ -3,6 +3,7 @@ package noise
 import (
 	"container/list"
 	"errors"
+	"fmt"
 	"math"
 	"sync"
 )
@@ -33,6 +34,7 @@ func (c *clientMap) get(n *Node, addr string) (*Client, bool) {
 	defer c.Unlock()
 
 	entry, exists := c.entries[addr]
+	fmt.Printf("connection Entries for Address %v %v", addr, c.entries)
 	if !exists {
 		if uint(len(c.entries)) == n.maxInboundConnections {
 			el := c.order.Back()

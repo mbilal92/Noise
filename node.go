@@ -400,13 +400,13 @@ func (n *Node) dialIfNotExists(ctx context.Context, addr string) (*Client, error
 		// client, exists := n.outbound.get(n, addr)
 		client, exists := n.connections.get(n, addr)
 		if !exists {
-			fmt.Printf("Client not found %v adding to OutBoung", addr)
+			fmt.Printf("Client not found %v adding to OutBoung \n", addr)
 			go client.outbound(ctx, addr)
 		}
 
 		select {
 		case <-ctx.Done():
-			err = fmt.Errorf("failed to dial peer: %w", ctx.Err())
+			err = fmt.Errorf("failed to dial peer: %w \n", ctx.Err())
 		case <-client.ready:
 			err = client.Error()
 		case <-client.readerDone:
