@@ -191,7 +191,6 @@ func (c *Client) close() {
 		c.writerClosed = true
 		c.writerCond.Signal()
 		c.writerCond.L.Unlock()
-
 		if c.conn != nil {
 			c.conn.Close()
 		}
@@ -269,10 +268,10 @@ func (c *Client) inbound(conn net.Conn, addr string) {
 		return
 	}
 
-	c.node.connections.remove(addr)
-	fmt.Println("\nHERE c.id.Address %v\n", c.id.Address)
-	_, _ = c.node.connections.get(c.node, c.id.Address)
-	fmt.Println("\nHERE2\n")
+	// c.node.connections.remove(addr)
+	fmt.Println("\ninbound HERE c.id.Address %v\n", c.id.Address)
+	// _, _ = c.node.connections.get(c.node, c.id.Address)
+	fmt.Println("\n inbound HERE2\n")
 
 	go c.writeLoop()
 	c.recvLoop()

@@ -35,8 +35,8 @@ func (c *clientMap) get(n *Node, addr string) (*Client, bool) {
 
 	entry, exists := c.entries[addr]
 	// n.logger.Info(" \n Connection Entries for Address", zap.String("Addr ", addr), zap.String("Entries ", c.entries))
-	fmt.Printf(" \n Connection Entries for Address %v %v \n", addr, c.entries)
 	if !exists {
+		fmt.Printf(" \n Connection not exist in Entries for Address %v %v \n", addr, c.entries)
 		if uint(len(c.entries)) == n.maxInboundConnections {
 			el := c.order.Back()
 			evicted := c.order.Remove(el).(string)

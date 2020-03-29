@@ -320,11 +320,12 @@ func (n *Node) RequestMessage(ctx context.Context, addr string, req Serializable
 // If there is no available connection from this nodes connection pool, the connection that is at the tail of the pool
 // is closed and evicted and used to send data to addr.
 func (n *Node) Send(ctx context.Context, addr string, data []byte) error {
+	fmt.Println("Here in send")
 	c, err := n.dialIfNotExists(ctx, addr)
 	if err != nil {
 		return err
 	}
-
+	fmt.Println("Here in send2")
 	if err := c.send(0, data); err != nil {
 		return err
 	}
@@ -395,15 +396,18 @@ func (n *Node) Close() error {
 
 func (n *Node) dialIfNotExists(ctx context.Context, addr string) (*Client, error) {
 	var err error
+	fmt.Println("Here dialIfNotExists")
 
 	for i := uint(0); i < n.maxDialAttempts; i++ {
 		// client, exists := n.outbound.get(n, addr)
+		fmt.Println("Here dialIfNotExists1")
 		client, exists := n.connections.get(n, addr)
 		if !exists {
 			fmt.Printf("\n Client not found %v adding to OutBound \n", addr)
 			go client.outbound(ctx, addr)
 		}
 
+		fmt.Println("Here dialIfNotExists3")
 		select {
 		case <-ctx.Done():
 			err = fmt.Errorf("failed to dial peer: %w \n", ctx.Err())
@@ -415,10 +419,13 @@ func (n *Node) dialIfNotExists(ctx context.Context, addr string) (*Client, error
 			err = client.Error()
 		}
 
+		fmt.Println("Here dialIfNotExists4")
 		if err == nil {
+			fmt.Println("returning fomr dial IfNOt exist client")
 			return client, nil
 		}
 
+		fmt.Println("Here dialIfNotExists Error %v", err)
 		client.close()
 		client.waitUntilClosed()
 
@@ -431,6 +438,7 @@ func (n *Node) dialIfNotExists(ctx context.Context, addr string) (*Client, error
 				protocol.OnPingFailed(addr, err)
 			}
 
+			fmt.Println("Here dialIfNotExists5")
 			return nil, err
 		}
 	}
