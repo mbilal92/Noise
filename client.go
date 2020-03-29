@@ -218,7 +218,7 @@ func (c *Client) outbound(ctx context.Context, addr string) {
 	var dialer net.Dialer
 
 	conn, err := dialer.DialContext(ctx, "tcp", addr)
-	c.Logger().Debug("Dialing Peer %v.", addr)
+	c.Logger().Debug("Dialing Peer.", zap.String("peer Address", addr))
 	if err != nil {
 		c.reportError(err)
 		close(c.ready)
