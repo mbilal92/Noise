@@ -34,7 +34,8 @@ func (c *clientMap) get(n *Node, addr string) (*Client, bool) {
 	defer c.Unlock()
 
 	entry, exists := c.entries[addr]
-	fmt.Printf("connection Entries for Address %v %v", addr, c.entries)
+	// n.logger.Info(" \n Connection Entries for Address", zap.String("Addr ", addr), zap.String("Entries ", c.entries))
+	fmt.Printf(" \n Connection Entries for Address %v %v \n", addr, c.entries)
 	if !exists {
 		if uint(len(c.entries)) == n.maxInboundConnections {
 			el := c.order.Back()

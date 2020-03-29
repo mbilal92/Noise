@@ -229,7 +229,7 @@ func (n *Node) Listen() error {
 			}
 
 			addr := conn.RemoteAddr().String()
-			n.logger.Info("Incoming Peer ", zap.String("Peer Addr", addr))
+			n.logger.Info("Incoming Peer ", zap.String("Peer Addr ", addr))
 
 			client, exists := n.connections.get(n, addr)
 			if !exists {
@@ -400,7 +400,7 @@ func (n *Node) dialIfNotExists(ctx context.Context, addr string) (*Client, error
 		// client, exists := n.outbound.get(n, addr)
 		client, exists := n.connections.get(n, addr)
 		if !exists {
-			fmt.Printf("Client not found %v adding to OutBoung \n", addr)
+			fmt.Printf("\n Client not found %v adding to OutBound \n", addr)
 			go client.outbound(ctx, addr)
 		}
 
