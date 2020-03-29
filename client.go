@@ -268,8 +268,11 @@ func (c *Client) inbound(conn net.Conn, addr string) {
 		c.close()
 		return
 	}
+
 	c.node.connections.remove(addr)
-	_, _ = c.node.connections.get(c.node, c.ID().Address)
+	fmt.Println("\nHERE c.id.Address %v\n", c.id.Address)
+	_, _ = c.node.connections.get(c.node, c.id.Address)
+	fmt.Println("\nHERE2\n")
 
 	go c.writeLoop()
 	c.recvLoop()

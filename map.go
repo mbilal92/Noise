@@ -56,6 +56,7 @@ func (c *clientMap) get(n *Node, addr string) (*Client, bool) {
 		c.order.MoveToFront(entry.el)
 	}
 
+	fmt.Printf(" \n Connection Entries for Address %v %v \n", addr, c.entries)
 	return entry.client, exists
 }
 
