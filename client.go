@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -496,7 +498,10 @@ func (c *Client) handshake() {
 	}
 
 	c.id = id
-	// c.id.Host = net.ParseIP(c.addr)
+	remoteAddress := strings.Split(c.conn.RemoteAddr().String(), ":")
+	c.id.Host = net.ParseIP(remoteAddress[0])
+	remotePort, err := strconv.ParseUint(remoteAddress[1], 10, 16)
+	c.id.Port = uint16(remotePort)
 
 	c.SetLogger(c.Logger().With(
 		zap.String("peer_id", id.ID.String()),
