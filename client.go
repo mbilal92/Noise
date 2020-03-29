@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"strconv"
 	"sync"
 	"time"
 
@@ -219,6 +218,7 @@ func (c *Client) outbound(ctx context.Context, addr string) {
 	var dialer net.Dialer
 
 	conn, err := dialer.DialContext(ctx, "tcp", addr)
+	c.Logger().Debug("Dialing Peer %v.", addr)
 	if err != nil {
 		c.reportError(err)
 		close(c.ready)
@@ -496,30 +496,26 @@ func (c *Client) handshake() {
 		return
 	}
 
-	// c.id = id
-	hostStr, portStr, err := net.SplitHostPort(c.conn.RemoteAddr().String())
-	if err != nil {
-		c.reportError(fmt.Errorf("failed to read overlay handshake: %w", err))
-		return
-	}
+	c.id = id
+	// hostStr, portStr, err := net.SplitHostPort(c.conn.RemoteAddr().String())
+	// if err != nil {
+	// 	c.reportError(fmt.Errorf("failed to read overlay handshake: %w", err))
+	// 	return
+	// }
 
-	host := net.ParseIP(hostStr)
-	if host == nil {
-		c.reportError(fmt.Errorf("host in provided public address is invalid (must be IPv4/IPv6) %w", hostStr))
-		return
-	}
+	// host := net.ParseIP(hostStr)
+	// if host == nil {
+	// 	c.reportError(fmt.Errorf("host in provided public address is invalid (must be IPv4/IPv6) %w", hostStr))
+	// 	return
+	// }
 
-	port, err := strconv.ParseUint(portStr, 10, 16)
-	if err != nil {
-		c.reportError(fmt.Errorf("port parsing Invalid  %w", err))
-		return
-	}
+	// port, err := strconv.ParseUint(portStr, 10, 16)
+	// if err != nil {
+	// 	c.reportError(fmt.Errorf("port parsing Invalid  %w", err))
+	// 	return
+	// }
 
-	c.id = NewID(id.ID, host, uint16(port))
-	// remoteAddress := strings.Split(c.conn.RemoteAddr().String(), ":")
-	// c.id.Host = net.ParseIP(remoteAddress[0])
-	// remotePort, err := strconv.ParseUint(remoteAddress[1], 10, 16)
-	// c.id.Port = uint16(remotePort)
+	// c.id = NewID(id.ID, host, uint16(port))
 
 	c.SetLogger(c.Logger().With(
 		zap.String("peer_id", id.ID.String()),
