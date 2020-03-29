@@ -264,11 +264,12 @@ func (c *Client) inbound(conn net.Conn, addr string) {
 	c.conn = conn
 
 	c.handshake()
-
 	if c.Error() != nil {
 		c.close()
 		return
 	}
+	c.node.connections.remove(addr)
+	_, _ = c.node.connections.get(c.node, c.ID().Address)
 
 	go c.writeLoop()
 	c.recvLoop()
