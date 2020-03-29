@@ -12,7 +12,6 @@ import (
 	"io"
 	"net"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -497,15 +496,35 @@ func (c *Client) handshake() {
 		return
 	}
 
-	c.id = id
-	remoteAddress := strings.Split(c.conn.RemoteAddr().String(), ":")
-	c.id.Host = net.ParseIP(remoteAddress[0])
-	remotePort, err := strconv.ParseUint(remoteAddress[1], 10, 16)
-	c.id.Port = uint16(remotePort)
+	// c.id = id
+	hostStr, portStr, err := net.SplitHostPort(c.conn.RemoteAddr().String())
+	if err != nil {
+		c.reportError(fmt.Errorf("failed to read overlay handshake: %w", err))
+		return
+	}
+
+	host := net.ParseIP(hostStr)
+	if host == nil {
+		c.reportError(fmt.Errorf("host in provided public address is invalid (must be IPv4/IPv6) %w", hostStr))
+		return
+	}
+
+	port, err := strconv.ParseUint(portStr, 10, 16)
+	if err != nil {
+		c.reportError(fmt.Errorf("port parsing Invalid  %w", err))
+		return
+	}
+
+	c.id = NewID(id.ID, host, uint16(port))
+	// remoteAddress := strings.Split(c.conn.RemoteAddr().String(), ":")
+	// c.id.Host = net.ParseIP(remoteAddress[0])
+	// remotePort, err := strconv.ParseUint(remoteAddress[1], 10, 16)
+	// c.id.Port = uint16(remotePort)
 
 	c.SetLogger(c.Logger().With(
 		zap.String("peer_id", id.ID.String()),
 		zap.String("peer_addr", id.Address),
+		zap.String("Cliend ID Address", c.id.Address),
 		zap.String("remote_addr", c.conn.RemoteAddr().String()),
 		zap.String("session_key", hex.EncodeToString(shared[:])),
 	))
