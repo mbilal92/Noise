@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,26 +27,50 @@ var (
 	addressFlag = pflag.StringP("address", "a", "", "publicly reachable network address")
 )
 
-type chatMessage struct {
-	From     noise.ID
-	contents string
+type Message struct {
+	From   noise.ID
+	Code   byte // 0 for relay, 1 for broadcast
+	Data   []byte
+	SeqNum byte
 }
 
-func (m chatMessage) Marshal() []byte {
+func (msg Message) Marshal() []byte {
 	writer := payload.NewWriter(nil)
-	writer.Write(m.From.Marshal())
-	writer.Write([]byte(m.contents))
+	writer.Write(msg.From.Marshal())
+	writer.WriteByte(msg.Code)
+	writer.WriteByte(msg.SeqNum)
+	writer.WriteUint32(uint32(len(msg.Data)))
+	writer.Write(msg.Data)
 	return writer.Bytes()
 }
 
-func (m chatMessage) String() string {
-	return m.From.String() + " msg: " + m.contents
+func (m Message) String() string {
+	return m.From.String() + " Code: " + strconv.Itoa(int(m.Code)) + " SeqNum: " + strconv.Itoa(int(m.SeqNum)) + " msg: " + string(m.Data)
 }
 
-func unmarshalChatMessage(buf []byte) (chatMessage, error) {
-	msg := chatMessage{}
+func unmarshalChatMessage(buf []byte) (Message, error) {
+	msg := Message{}
 	msg.From, _ = noise.UnmarshalID(buf)
-	msg.contents = string(buf[msg.From.Size():])
+
+	buf = buf[msg.From.Size():]
+	reader := payload.NewReader(buf)
+	code, err := reader.ReadByte()
+	if err != nil {
+		panic(err)
+	}
+	msg.Code = code
+
+	seqNum, err := reader.ReadByte()
+	if err != nil {
+		panic(err)
+	}
+	msg.SeqNum = seqNum
+
+	data, err := reader.ReadBytes()
+	if err != nil {
+		panic(err)
+	}
+	msg.Data = data
 	return msg, nil
 }
 
@@ -99,8 +124,8 @@ func main() {
 	// Release resources associated to node at the end of the program.
 	defer node.Close()
 
-	// Register the chatMessage Go type to the node with an associated unmarshal function.
-	node.RegisterMessage(chatMessage{}, unmarshalChatMessage)
+	// Register the Message Go type to the node with an associated unmarshal function.
+	node.RegisterMessage(Message{}, unmarshalChatMessage)
 
 	// Register a message handler to the node.
 	node.Handle(handle)
@@ -179,21 +204,23 @@ func handle(ctx noise.HandlerContext) error {
 		return nil
 	}
 
-	msg, ok := obj.(chatMessage)
+	msg, ok := obj.(Message)
 	if !ok {
 		return nil
 	}
 
-	if len(msg.contents) == 0 {
+	if len(msg.Data) == 0 {
 		return nil
 	}
 
 	fmt.Printf("%s(%s)> %s\n", ctx.ID().Address, ctx.ID().ID.String()[:printedLength], msg.String())
 
 	if ctx.IsRequest() {
-		msg2 := chatMessage{}
+		msg2 := Message{}
 		msg2.From = ctx.ID()
-		msg2.contents = "GOT: " + msg.contents
+		msg2.Data = []byte("GOT: " + string(msg.Data))
+		msg2.Code = 2
+		msg2.SeqNum = 1
 		return ctx.SendMessage(msg2)
 	}
 
@@ -263,9 +290,11 @@ func chat(node *noise.Node, overlay *kademlia.Protocol, line string) {
 	case "/request":
 		for _, id := range overlay.Table().Peers() {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-			msg := chatMessage{}
+			msg := Message{}
 			msg.From = node.ID()
-			msg.contents = line
+			msg.SeqNum = byte(int(0))
+			msg.Code = byte(int(1))
+			msg.Data = []byte(line)
 			msg2, err := node.RequestMessage(ctx, id.Address, msg)
 			if err != nil {
 				fmt.Printf("Failed to send message to %s(%s). Skipping... [error: %s]\n",
@@ -275,7 +304,7 @@ func chat(node *noise.Node, overlay *kademlia.Protocol, line string) {
 				)
 				continue
 			} else {
-				fmt.Printf("Got Response from %v data %v", msg2.(chatMessage).From, msg2.(chatMessage).contents)
+				fmt.Printf("GOR RESPONSE for Request %v", msg2.(Message).String())
 			}
 			cancel()
 		}
@@ -290,9 +319,12 @@ func chat(node *noise.Node, overlay *kademlia.Protocol, line string) {
 
 	for _, id := range overlay.Table().Peers() {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		msg := chatMessage{}
+		msg := Message{}
 		msg.From = node.ID()
-		msg.contents = line
+		msg.Data = []byte(line)
+		msg.SeqNum = byte(3)
+		msg.Code = byte(3)
+		fmt.Printf("msg %v", msg.String())
 		err := node.SendMessage(ctx, id.Address, msg)
 		cancel()
 

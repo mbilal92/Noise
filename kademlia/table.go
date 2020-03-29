@@ -151,6 +151,28 @@ func (t *Table) DeleteByAddress(target string) (noise.ID, bool) {
 	return noise.ID{}, false
 }
 
+// DeleteByAddress removes the first occurrence of an id with target as its address from this routing table. It
+// returns the id of the deleted target and true if found, or a zero-value ID and false otherwise.
+func (t *Table) AddressFromPK(target []byte) string {
+	t.Lock()
+	defer t.Unlock()
+	var tatgetPublicKey noise.PublicKey
+	copy(tatgetPublicKey[:], target)
+
+	for _, bucket := range t.entries {
+		for e := bucket.Front(); e != nil; e = e.Next() {
+			id := e.Value.(noise.ID)
+
+			if id.ID == tatgetPublicKey {
+				bucket.Remove(e)
+				return id.Address
+			}
+		}
+	}
+
+	return ""
+}
+
 // Peers returns BucketSize closest peer IDs to the ID which this routing table's distance metric is defined against.
 func (t *Table) Peers() []noise.ID {
 	return t.FindClosest(t.self.ID, BucketSize)
