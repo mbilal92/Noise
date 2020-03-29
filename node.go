@@ -45,8 +45,9 @@ type Node struct {
 	listener  net.Listener
 	listening atomic.Bool
 
-	outbound *clientMap
-	inbound  *clientMap
+	// outbound *clientMap
+	// inbound  *clientMap
+	connections *clientMap
 
 	codec     *codec
 	protocols []Protocol
@@ -94,8 +95,10 @@ func NewNode(opts ...NodeOption) (*Node, error) {
 		n.id = NewID(n.publicKey, n.host, n.port)
 	}
 
-	n.inbound = newClientMap(n.maxInboundConnections)
-	n.outbound = newClientMap(n.maxOutboundConnections)
+	// n.inbound = newClientMap(n.maxInboundConnections)
+	// n.outbound = newClientMap(n.maxOutboundConnections)
+
+	n.connections = newClientMap(n.maxOutboundConnections)
 
 	n.codec = newCodec()
 
@@ -201,7 +204,8 @@ func (n *Node) Listen() error {
 		n.listening.Store(true)
 
 		defer func() {
-			n.inbound.release()
+			// n.inbound.release()
+			n.connections.release()
 
 			close(n.work)
 			n.workers.Wait()
@@ -227,7 +231,7 @@ func (n *Node) Listen() error {
 			addr := conn.RemoteAddr().String()
 			n.logger.Info("Incoming Peer ", zap.String("Peer Addr", addr))
 
-			client, exists := n.inbound.get(n, addr)
+			client, exists := n.connections.get(n, addr)
 			if !exists {
 				go client.inbound(conn, addr)
 			}
@@ -393,8 +397,10 @@ func (n *Node) dialIfNotExists(ctx context.Context, addr string) (*Client, error
 	var err error
 
 	for i := uint(0); i < n.maxDialAttempts; i++ {
-		client, exists := n.outbound.get(n, addr)
+		// client, exists := n.outbound.get(n, addr)
+		client, exists := n.connections.get(n, addr)
 		if !exists {
+			fmt.Printf("Client not found %v adding to OutBoung", addr)
 			go client.outbound(ctx, addr)
 		}
 
@@ -478,16 +484,16 @@ func (n *Node) Sign(data []byte) Signature {
 // Inbound returns a cloned slice of all inbound connections to this node as Client instances. It is useful
 // while writing unit tests where you would want to block the current goroutine via (*Client).WaitUntilReady and
 // (*Client).WaitUntilClosed to test scenarios where you want to be sure some inbound client is open/closed.
-func (n *Node) Inbound() []*Client {
-	return n.inbound.slice()
-}
+// func (n *Node) Inbound() []*Client {
+// 	return n.inbound.slice()
+// }
 
 // Outbound returns a cloned slice of all outbound connections to this node as Client instances. It is useful
 // while writing unit tests where you would want to block the current goroutine via (*Client).WaitUntilClosed to
 // test scenarios where you want to be sure some outbound client has resources associated to it completely released.
-func (n *Node) Outbound() []*Client {
-	return n.outbound.slice()
-}
+// func (n *Node) Outbound() []*Client {
+// 	return n.outbound.slice()
+// }
 
 // Addr returns the public address of this node. The public address, should it not be configured through the
 // WithNodeAddress functional option when calling NewNode, is initialized to 'host:port' after a successful

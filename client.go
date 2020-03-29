@@ -211,7 +211,8 @@ func (c *Client) outbound(ctx context.Context, addr string) {
 	c.side = clientSideInbound
 
 	defer func() {
-		c.node.outbound.remove(addr)
+		// c.node.outbound.remove(addr)
+		c.node.connections.remove(addr)
 		close(c.clientDone)
 	}()
 
@@ -253,7 +254,8 @@ func (c *Client) inbound(conn net.Conn, addr string) {
 	c.side = clientSideOutbound
 
 	defer func() {
-		c.node.inbound.remove(addr)
+		// c.node.inbound.remove(addr)
+		c.node.connections.remove(addr)
 		close(c.clientDone)
 	}()
 

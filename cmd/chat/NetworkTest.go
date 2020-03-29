@@ -125,7 +125,13 @@ func chat(ntw *network.Network, line string) {
 		ntw.Discover()
 		return
 	case "/peers":
-		ntw.Peers()
+		ids := ntw.Peers()
+		var str []string
+		for _, id := range ids {
+			str = append(str, fmt.Sprintf("%s(%s)", id.Address, id.ID.String()[:printedLength]))
+		}
+
+		fmt.Printf("I know %d peer(s): [%v]\n", len(ids), strings.Join(str, ", "))
 		return
 	case "/request":
 		for _, id := range ntw.Peers() {
