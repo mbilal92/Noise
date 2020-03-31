@@ -95,6 +95,10 @@ func input(callback func(string)) {
 	r := bufio.NewReader(os.Stdin)
 
 	for {
+		fmt.Printf("Type '/discover' to attempt to discover new " +
+			"peers, or '/peers' to list out all peers you are connected to.\n" +
+			"\tType '/rm' to relay Msg to a node with Public Key .\n" +
+			"\tType any Text and press Enter to broadcast msg\n")
 		buf, _, err := r.ReadLine()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
@@ -125,9 +129,9 @@ func help(node *noise.Node) {
 // chat handles sending chat messages and handling chat commands.
 func chat(ntw *network.Network, line string) {
 	switch line {
-	// case "/discover":
-	// 	ntw.Discover()
-	// 	return
+	case "/discover":
+		ntw.Discover()
+		return
 	case "/peers":
 		ids := ntw.Peers()
 		var str []string
@@ -144,16 +148,18 @@ func chat(ntw *network.Network, line string) {
 		decoded, _ := hex.DecodeString(hexPbKey)
 		var publicKey noise.PublicKey
 		copy(publicKey[:], decoded)
-		fmt.Println("Decoded publicKey: %v", publicKey.String())
-		fmt.Println("%v", ntw.FindPeer(publicKey))
-	case "/sp":
+		fmt.Printf("Decoded publicKey: %v\n", publicKey.String())
+		fmt.Printf("%v\n", ntw.FindPeer(publicKey))
+	case "/rm":
+		fmt.Printf("Enter Public Key (Hex Value)\n")
 		reader := bufio.NewReader(os.Stdin)
 		input, _ := reader.ReadString('\n')
 		hexPbKey := strings.TrimSpace(input)
 		decoded, _ := hex.DecodeString(hexPbKey)
 		var publicKey noise.PublicKey
 		copy(publicKey[:], decoded)
-		fmt.Println("Decoded publicKey: %v", publicKey.String())
+		fmt.Printf("Decoded publicKey: %v\n", publicKey.String())
+		fmt.Printf("Enter Text to send:\n")
 		line2, _ := reader.ReadString('\n')
 		msgTosend := strings.TrimSpace(line2)
 		msg := relay.Message{}

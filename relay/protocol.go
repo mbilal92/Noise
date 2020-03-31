@@ -4,8 +4,6 @@ package relay
 
 import (
 	"context"
-	"encoding/hex"
-	"fmt"
 	"time"
 
 	"github.com/VictoriaMetrics/fastcache"
@@ -76,7 +74,7 @@ func (p *Protocol) Relay(ctx context.Context, msg Message) {
 	localPeerAddress := p.overlay.Table().AddressFromPK(msg.To)
 	if localPeerAddress != "" {
 		if err := p.node.SendMessage(ctx, localPeerAddress, msg); err != nil {
-			fmt.Printf("Relay send msg Fucked %v\n", err)
+			// fmt.Printf("Relay send msg Fucked %v\n", err)
 		}
 		return
 	}
@@ -84,7 +82,7 @@ func (p *Protocol) Relay(ctx context.Context, msg Message) {
 	// peers := p.overlay.Find(msg.To)
 	peers := p.overlay.Table().FindClosest(msg.To, DefaultPeerToSendRelay)
 
-	fmt.Printf("Relay Peers %v\n", peers)
+	// fmt.Printf("Relay Peers %v\n", peers)
 	// var wg sync.WaitGroup
 	// wg.Add(len(peers))
 
@@ -95,13 +93,13 @@ func (p *Protocol) Relay(ctx context.Context, msg Message) {
 			// defer wg.Done()
 
 			if p.seen.Has(key) {
-				fmt.Printf("Relay ID %v Alread seen Msg %v\n", id, hex.EncodeToString(key))
+				// fmt.Printf("Relay ID %v Alread seen Msg %v\n", id, hex.EncodeToString(key))
 				return
 			}
 
-			fmt.Printf("Relay ID %v hash %v\n", id, hex.EncodeToString(key))
+			// fmt.Printf("Relay ID %v hash %v\n", id, hex.EncodeToString(key))
 			if err := p.node.SendMessage(ctx, id.Address, msg); err != nil {
-				fmt.Printf("Relay send msg Fucked %v\n", err)
+				// fmt.Printf("Relay send msg Fucked %v\n", err)
 				return
 			}
 
@@ -110,7 +108,6 @@ func (p *Protocol) Relay(ctx context.Context, msg Message) {
 	}
 
 	// wg.Wait()
-	fmt.Println("Relay Exist")
 }
 
 // Handle implements noise.Protocol and handles gossip.Message messages.
@@ -145,10 +142,10 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 	p.seen.Set(self, nil) // Mark that we already have this data.
 
 	if msg.To == p.node.ID().ID {
-		fmt.Println("Relay Handle Found Node")
+		// fmt.Println("Relay Handle Found Node")
 		p.relayChan <- msg
 	} else {
-		fmt.Println("Relay Handle Relaying further")
+		// fmt.Println("Relay Handle Relaying further")
 		go p.Relay(context.TODO(), msg)
 	}
 
