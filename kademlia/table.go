@@ -153,18 +153,18 @@ func (t *Table) DeleteByAddress(target string) (noise.ID, bool) {
 
 // DeleteByAddress removes the first occurrence of an id with target as its address from this routing table. It
 // returns the id of the deleted target and true if found, or a zero-value ID and false otherwise.
-func (t *Table) AddressFromPK(target []byte) string {
+func (t *Table) AddressFromPK(target noise.PublicKey) string {
 	t.Lock()
 	defer t.Unlock()
-	var tatgetPublicKey noise.PublicKey
-	copy(tatgetPublicKey[:], target)
+	// var tatgetPublicKey noise.PublicKey
+	// copy(tatgetPublicKey[:], target)
 
 	for _, bucket := range t.entries {
 		for e := bucket.Front(); e != nil; e = e.Next() {
 			id := e.Value.(noise.ID)
 
-			if id.ID == tatgetPublicKey {
-				bucket.Remove(e)
+			if id.ID == target {
+				// bucket.Remove(e)
 				return id.Address
 			}
 		}

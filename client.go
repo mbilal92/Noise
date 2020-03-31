@@ -269,9 +269,9 @@ func (c *Client) inbound(conn net.Conn, addr string) {
 	}
 
 	// c.node.connections.remove(addr)
-	fmt.Println("\ninbound HERE c.id.Address %v\n", c.id.Address)
+	// fmt.Println("\ninbound HERE c.id.Address %v\n", c.id.Address)
 	// _, _ = c.node.connections.get(c.node, c.id.Address)
-	fmt.Println("\n inbound HERE2\n")
+	// fmt.Println("\n inbound HERE2\n")
 
 	go c.writeLoop()
 	c.recvLoop()
@@ -346,6 +346,8 @@ func (c *Client) write(data []byte) error {
 
 func (c *Client) send(nonce uint64, data []byte) error {
 	c.writerCond.L.Lock()
+	// msg := message{nonce: nonce, data: data}
+	// fmt.Printf("Sending Data %v to Client %v\n", msg.String(), c.ID())
 	c.writerBuf = append(c.writerBuf, message{nonce: nonce, data: data})
 	c.writerCond.Signal()
 	c.writerCond.L.Unlock()
@@ -565,6 +567,7 @@ func (c *Client) recvLoop() {
 
 		msg.data = append([]byte{}, msg.data...)
 
+		// fmt.Printf("Msg Receieved %v\n", msg.String())
 		if ch := c.requests.findRequest(msg.nonce); ch != nil {
 			ch <- msg
 			close(ch)

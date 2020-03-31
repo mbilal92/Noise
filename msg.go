@@ -2,10 +2,13 @@ package noise
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
+	"io"
+	"strconv"
+
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
-	"io"
 )
 
 type message struct {
@@ -28,8 +31,12 @@ func unmarshalMessage(data []byte) (message, error) {
 
 	nonce := binary.BigEndian.Uint64(data[:8])
 	data = data[8:]
-
+	// fmt.Printf("noise msg Received %v\n", message{nonce: nonce, data: data})
 	return message{nonce: nonce, data: data}, nil
+}
+
+func (m message) String() string {
+	return " nonce: " + strconv.FormatUint(m.nonce, 10) + " msg: " + hex.EncodeToString(m.data) + "\n"
 }
 
 // HandlerContext provides contextual information upon the recipient of data from an inbound/outbound connection. It
@@ -63,6 +70,14 @@ func (ctx *HandlerContext) Data() []byte {
 func (ctx *HandlerContext) IsRequest() bool {
 	return ctx.msg.nonce > 0
 }
+
+// func (ctx *HandlerContext) Nonce() uint64 {
+// 	return ctx.msg.nonce
+// }
+
+// func (ctx *HandlerContext) Message() message {
+// 	return ctx.msg
+// }
 
 // Send sends data back to the peer that has sent you data. Should the data the peer send you be of a request, Send
 // will send data back as a response. It returns an error if multiple responses attempt to be sent to a single request,

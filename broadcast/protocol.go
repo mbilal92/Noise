@@ -1,10 +1,9 @@
 // Package gossip is a simple implementation of a gossip protocol for noise. It keeps track of a cache of messages
 // sent/received to/from peers to avoid re-gossiping particular messages to specific peers.
-package gossip
+package broadcast
 
 import (
 	"context"
-	"sync"
 
 	"github.com/VictoriaMetrics/fastcache"
 	"github.com/mbilal92/noise"
@@ -18,10 +17,10 @@ const (
 // Protocol implements a simple gossiping protocol that avoids resending messages to peers that it already believes
 // is aware of particular messages that are being gossiped.
 type Protocol struct {
-	node          *noise.Node
-	overlay       *kademlia.Protocol
-	events        Events
-	broadcastChan chan Message
+	node      *noise.Node
+	overlay   *kademlia.Protocol
+	events    Events
+	relayChan chan Message
 
 	seen *fastcache.Cache
 }
@@ -29,9 +28,9 @@ type Protocol struct {
 // New returns a new instance of a gossip protocol with 32MB of in-memory cache instantiated.
 func New(overlay *kademlia.Protocol, opts ...Option) *Protocol {
 	p := &Protocol{
-		overlay:       overlay,
-		seen:          fastcache.New(32 << 20),
-		broadcastChan: make(chan Message, relayChanSize),
+		overlay:   overlay,
+		seen:      fastcache.New(32 << 20),
+		relayChan: make(chan Message, relayChanSize),
 	}
 
 	for _, opt := range opts {
@@ -65,24 +64,25 @@ func (p *Protocol) Bind(node *noise.Node) error {
 // believes that the aforementioned peer has not received data before. A context may be provided to cancel Push, as it
 // blocks the current goroutine until the gossiping of a single message is done. Any errors pushing a message to a
 // particular peer is ignored.
-func (p *Protocol) Push(ctx context.Context, data []byte) {
+func (p *Protocol) Push(ctx context.Context, msg Message) {
+	data := msg.Marshal()
 	p.seen.Set(p.hash(p.node.ID(), data), nil)
 
 	peers := p.overlay.Table().Entries()
-	var wg sync.WaitGroup
-	wg.Add(len(peers))
+	// var wg sync.WaitGroup
+	// wg.Add(len(peers))
 
 	for _, id := range peers {
 		id, key := id, p.hash(id, data)
 
 		go func() {
-			defer wg.Done()
+			// defer wg.Done()
 
 			if p.seen.Has(key) {
 				return
 			}
 
-			if err := p.node.SendMessage(ctx, id.Address, Message(data)); err != nil {
+			if err := p.node.SendMessage(ctx, id.Address, msg); err != nil {
 				return
 			}
 
@@ -90,7 +90,7 @@ func (p *Protocol) Push(ctx context.Context, data []byte) {
 		}()
 	}
 
-	wg.Wait()
+	// wg.Wait()
 }
 
 // Handle implements noise.Protocol and handles gossip.Message messages.
@@ -110,9 +110,10 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 		return nil
 	}
 
-	p.seen.Set(p.hash(ctx.ID(), msg), nil) // Mark that the sender already has this data.
+	data := msg.Marshal()
+	p.seen.Set(p.hash(ctx.ID(), data), nil) // Mark that the sender already has this data.
 
-	self := p.hash(p.node.ID(), msg)
+	self := p.hash(p.node.ID(), data)
 
 	if p.seen.Has(self) {
 		return nil
@@ -120,7 +121,7 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 
 	p.seen.Set(self, nil) // Mark that we already have this data.
 
-	p.broadcastChan <- msg
+	p.relayChan <- msg
 	// if p.events.OnGossipReceived != nil {
 	// 	if err := p.events.OnGossipReceived(p.node, ctx.ID(), msg); err != nil {
 	// 		return err
@@ -137,5 +138,5 @@ func (p *Protocol) hash(id noise.ID, data []byte) []byte {
 }
 
 func (p *Protocol) GetBroadcastChan() chan Message {
-	return p.broadcastChan
+	return p.relayChan
 }

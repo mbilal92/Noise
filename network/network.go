@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/mbilal92/noise"
+	"github.com/mbilal92/noise/broadcast"
 	"github.com/mbilal92/noise/kademlia"
-	"github.com/mbilal92/noise/payload"
+	"github.com/mbilal92/noise/relay"
 	"go.uber.org/zap"
 	// "github.com/mbilal92/noise/broadcast"
 	// "github.com/mbilal92/noise/relay"
@@ -21,61 +21,17 @@ const (
 	DefaultBootstrapTimeout = time.Second * 10
 	// DefaultPeerThreshold is the default threshold above which bootstrapping is considered successful
 	DefaultPeerThreshold = 8
+	MsgChanSize          = 64
 )
 
 // Network encapsulates the communication in a noise p2p network.
 type Network struct {
-	node    *noise.Node
-	overlay *kademlia.Protocol
-	// relayChan     chan relay.Message
-	// broadcastChan chan broadcast.Message
-}
-
-type Message struct {
-	From   noise.ID
-	Code   byte // 0 for relay, 1 for broadcast
-	Data   []byte
-	SeqNum byte
-}
-
-func (msg Message) Marshal() []byte {
-	writer := payload.NewWriter(nil)
-	writer.Write(msg.From.Marshal())
-	writer.WriteByte(msg.Code)
-	writer.WriteByte(msg.SeqNum)
-	writer.WriteUint32(uint32(len(msg.Data)))
-	writer.Write(msg.Data)
-	return writer.Bytes()
-}
-
-func (m Message) String() string {
-	return m.From.String() + " Code: " + strconv.Itoa(int(m.Code)) + " SeqNum: " + strconv.Itoa(int(m.SeqNum)) + " msg: " + string(m.Data)
-}
-
-func unmarshalChatMessage(buf []byte) (Message, error) {
-	msg := Message{}
-	msg.From, _ = noise.UnmarshalID(buf)
-
-	buf = buf[msg.From.Size():]
-	reader := payload.NewReader(buf)
-	code, err := reader.ReadByte()
-	if err != nil {
-		panic(err)
-	}
-	msg.Code = code
-
-	seqNum, err := reader.ReadByte()
-	if err != nil {
-		panic(err)
-	}
-	msg.SeqNum = seqNum
-
-	data, err := reader.ReadBytes()
-	if err != nil {
-		panic(err)
-	}
-	msg.Data = data
-	return msg, nil
+	node          *noise.Node
+	overlay       *kademlia.Protocol
+	broadcastHub  *broadcast.Protocol
+	relayHub      *relay.Protocol
+	relayChan     chan relay.Message
+	broadcastChan chan broadcast.Message
 }
 
 // //HandlePeerDisconnection registers the dinconnection callback with the interface
@@ -117,12 +73,6 @@ func New(host net.IP, port uint16, privatekey noise.PrivateKey, logger *zap.Logg
 	)
 
 	check(err)
-	// r := relay.New()
-	// relayChan := r.GetRelayChan()
-	// bc := broadcast.New()
-	// broadcastChan := bc.GetBroadcastChan()
-	node.RegisterMessage(Message{}, unmarshalChatMessage)
-	node.Handle(handle)
 	events := kademlia.Events{
 		OnPeerAdmitted: func(id noise.ID) {
 			fmt.Printf("Learned about a new peer %s(%s).\n", id.Address, id.ID.String()[:printedLength])
@@ -133,46 +83,43 @@ func New(host net.IP, port uint16, privatekey noise.PrivateKey, logger *zap.Logg
 	}
 
 	overlay := kademlia.New(kademlia.WithProtocolEvents(events))
-
 	// Bind Kademlia to the node.
-	node.Bind(overlay.Protocol())
+	// GosipEvents := gossip.Events{
+	// 	OnGossipReceived: func(node *noise.Node, sender noise.ID, data []byte) error {
+	// 		msg, err := unmarshalChatMessage(data)
+	// 		if err != nil {
+	// 			return nil
+	// 		}
+
+	// 		if len(msg.Data) == 0 {
+	// 			return nil
+	// 		}
+
+	// 		fmt.Printf("Gosip MSG REceieved")
+	// 		// node.MsgChan <- msg
+	// 		fmt.Printf("%s(%s)> %s\n", sender.Address, sender.ID.String()[:printedLength], msg.String())
+	// 		return nil
+	// 	},
+	// }
+
+	broadcastHub := broadcast.New(overlay) //gossip.WithEvents(GosipEvents)
+	relayHub := relay.New(overlay)
+
+	node.Bind(
+		overlay.Protocol(),
+		broadcastHub.Protocol(),
+		relayHub.Protocol(),
+	)
 
 	go node.Listen()
 	return &Network{
-		node:    node,
-		overlay: overlay,
-		// relayChan:     relayChan,
-		// broadcastChan: broadcastChan,
+		node:          node,
+		overlay:       overlay,
+		broadcastHub:  broadcastHub,
+		relayHub:      relayHub,
+		broadcastChan: broadcastHub.GetBroadcastChan(),
+		relayChan:     relayHub.GetRelayChan(),
 	}, nil
-}
-
-func handle(ctx noise.HandlerContext) error {
-	obj, err := ctx.DecodeMessage()
-	if err != nil {
-		return nil
-	}
-
-	msg, ok := obj.(Message)
-	if !ok {
-		return nil
-	}
-
-	if len(msg.Data) == 0 {
-		return nil
-	}
-
-	fmt.Printf("%s(%s)> %s\n", ctx.ID().Address, ctx.ID().ID.String()[:printedLength], msg.String())
-
-	if ctx.IsRequest() {
-		msg2 := Message{}
-		msg2.From = ctx.ID()
-		msg2.Data = []byte("GOT: " + string(msg.Data))
-		msg2.Code = 2
-		msg2.SeqNum = 1
-		return ctx.SendMessage(msg2)
-	}
-
-	return nil
 }
 
 // Bootstrap bootstraps a network using a list of peer addresses and returns whether bootstrap finished before timeout.
@@ -197,15 +144,15 @@ func (ntw *Network) Bootstrap(peerAddrs []string, timeout time.Duration, peerThr
 
 	}
 
-	if ntw.GetNumPeers() <= peerThreshold {
-		ntw.Discover()
-	}
+	// if ntw.GetNumPeers() <= peerThreshold {
+	// 	ntw.Discover()
+	// }
 
 	return true
 }
 
 func (ntw *Network) Discover() {
-	ids := ntw.overlay.Discover()
+	ids := ntw.overlay.Discover(kademlia.WithIteratorMaxNumResults(3))
 
 	var str []string
 	for _, id := range ids {
@@ -222,13 +169,6 @@ func (ntw *Network) Discover() {
 // peers prints out all peers we are already aware of.
 func (ntw *Network) Peers() []noise.ID {
 	ids := ntw.overlay.Table().Peers()
-
-	// var str []string
-	// for _, id := range ids {
-	// 	str = append(str, fmt.Sprintf("%s(%s)", id.Address, id.ID.String()[:printedLength]))
-	// }
-
-	// fmt.Printf("I know %d peer(s): [%v]\n", len(ids), strings.Join(str, ", "))
 	return ids
 }
 
@@ -238,14 +178,14 @@ func (ntw *Network) BootstrapDefault(peerAddrs []string) bool {
 }
 
 // GetRelayChan returns the channel for relay messages.
-// func (ntw *Network) GetRelayChan() chan relay.Message {
-// 	return ntw.relayChan
-// }
+func (ntw *Network) GetRelayChan() chan relay.Message {
+	return ntw.relayChan
+}
 
-// // GetBroadcastChan returns the channel for broadcast messages.
-// func (ntw *Network) GetBroadcastChan() chan broadcast.Message {
-// 	return ntw.broadcastChan
-// }
+// GetBroadcastChan returns the channel for broadcast messages.
+func (ntw *Network) GetBroadcastChan() chan broadcast.Message {
+	return ntw.broadcastChan
+}
 
 // GetNodeID returns the network node's skademlia ID.
 func (ntw *Network) GetNodeID() noise.ID {
@@ -253,7 +193,7 @@ func (ntw *Network) GetNodeID() noise.ID {
 }
 
 //AddressFromPK returns the address associated with the public key
-func (ntw *Network) AddressFromPK(publicKey []byte) string {
+func (ntw *Network) AddressFromPK(publicKey noise.PublicKey) string {
 	return ntw.overlay.Table().AddressFromPK(publicKey)
 }
 
@@ -262,26 +202,23 @@ func (ntw *Network) GetNumPeers() int {
 	return len(ntw.overlay.Table().Peers())
 }
 
-// Relay relays data to peer with given ID.
-// func (ntw *Network) Relay(peerID noise.ID, code byte, data []byte) error {
-// 	nodeID := ntw.GetNodeID()
-// 	nodeAddr := nodeID.Address()
-// 	peerAddr := peerID.Address()
-// 	msg := relay.NewMessage(nodeID, peerID, code, data)
-// 	err := relay.ToPeer(ntw.node, msg, false, true)
-// 	if err != nil {
-// 		log.Warn().Msgf("%v to %v relay failed without lookup: %v", nodeAddr, peerAddr, err)
-// 		err = relay.ToPeer(ntw.node, msg, true, true)
-// 	}
-// 	return err
-// }
+// Broadcast broadcasts data to the entire p2p network.
+func (ntw *Network) Broadcast(msg broadcast.Message) {
+	// ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	// fmt.Println("Broad CAST HERE")
+	ntw.broadcastHub.Push(context.TODO(), msg)
+	// cancel()
+}
 
-// // Broadcast broadcasts data to the entire p2p network.
-// func (ntw *Network) Broadcast(code byte, data []byte) {
-// 	minBucketID := 0
-// 	maxBucketID := kad.Table(ntw.node).GetNumOfBuckets() - 1
-// 	broadcast.Send(ntw.node, ntw.GetNodeID(), code, data, minBucketID, maxBucketID, 0, true)
-// }
+func (ntw *Network) FindPeer(target noise.PublicKey) []noise.ID {
+	return ntw.overlay.Table().FindClosest(target, 16)
+}
+
+func (ntw *Network) RelayMsg(msg relay.Message) {
+	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ntw.relayHub.Relay(context.TODO(), msg)
+	// cancel()
+}
 
 func (ntw *Network) Close() {
 	ntw.node.Close()
@@ -291,25 +228,15 @@ func (ntw *Network) Node() *noise.Node {
 	return ntw.node
 }
 
-// func (ntw *Network) RequestMsgToPeers() {
-// 	for _, id := range ntw.overlay.Table().Peers() {
-// 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-// 		msg := Message{}
-// 		msg.From = node.ID()
-// 		msg.SeqNum = byte(int(0))
-// 		msg.Code = byte(int(1))
-// 		msg.Data = []byte(line)
-// 		msg2, err := node.RequestMessage(ctx, id.Address, msg)
-// 		if err != nil {
-// 			fmt.Printf("Failed to send message to %s(%s). Skipping... [error: %s]\n",
-// 				id.Address,
-// 				id.ID.String()[:printedLength],
-// 				err,
-// 			)
-// 			continue
-// 		} else {
-// 			fmt.Printf("GOR RESPONSE for Request %v", msg2.(Message).String())
-// 		}
-// 		cancel()
-// 	}
-// }
+func (ntw *Network) Process() {
+	for {
+		select {
+		case msg := <-ntw.relayChan:
+			fmt.Printf("Relay Msg : %v\n", msg.String())
+			break
+		case msg := <-ntw.broadcastChan:
+			fmt.Printf("Broadcast msg: %v\n", msg.String())
+			break
+		}
+	}
+}

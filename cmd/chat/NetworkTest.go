@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -13,7 +14,9 @@ import (
 	"time"
 
 	"github.com/mbilal92/noise"
+	"github.com/mbilal92/noise/broadcast"
 	"github.com/mbilal92/noise/network"
+	"github.com/mbilal92/noise/relay"
 	"github.com/spf13/pflag"
 	"go.uber.org/zap"
 )
@@ -69,6 +72,7 @@ func main() {
 
 	ntw.Bootstrap(pflag.Args(), 3*time.Second, 8)
 
+	go ntw.Process()
 	// Accept chat message inputs and handle chat commands in a separate goroutine.
 	go input(func(line string) {
 		chat(ntw, line)
@@ -121,9 +125,9 @@ func help(node *noise.Node) {
 // chat handles sending chat messages and handling chat commands.
 func chat(ntw *network.Network, line string) {
 	switch line {
-	case "/discover":
-		ntw.Discover()
-		return
+	// case "/discover":
+	// 	ntw.Discover()
+	// 	return
 	case "/peers":
 		ids := ntw.Peers()
 		var str []string
@@ -133,6 +137,31 @@ func chat(ntw *network.Network, line string) {
 
 		fmt.Printf("I know %d peer(s): [%v]\n", len(ids), strings.Join(str, ", "))
 		return
+	case "/fp":
+		reader := bufio.NewReader(os.Stdin)
+		input, _ := reader.ReadString('\n')
+		hexPbKey := strings.TrimSpace(input)
+		decoded, _ := hex.DecodeString(hexPbKey)
+		var publicKey noise.PublicKey
+		copy(publicKey[:], decoded)
+		fmt.Println("Decoded publicKey: %v", publicKey.String())
+		fmt.Println("%v", ntw.FindPeer(publicKey))
+	case "/sp":
+		reader := bufio.NewReader(os.Stdin)
+		input, _ := reader.ReadString('\n')
+		hexPbKey := strings.TrimSpace(input)
+		decoded, _ := hex.DecodeString(hexPbKey)
+		var publicKey noise.PublicKey
+		copy(publicKey[:], decoded)
+		fmt.Println("Decoded publicKey: %v", publicKey.String())
+		line2, _ := reader.ReadString('\n')
+		msgTosend := strings.TrimSpace(line2)
+		msg := relay.Message{}
+		msg.From = ntw.Node().ID()
+		msg.Data = []byte(msgTosend)
+		msg.To = publicKey
+		ntw.RelayMsg(msg)
+		return
 	case "/request":
 		for _, id := range ntw.Peers() {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -141,6 +170,7 @@ func chat(ntw *network.Network, line string) {
 			msg.SeqNum = byte(int(0))
 			msg.Code = byte(int(1))
 			msg.Data = []byte(line)
+			msg.To = ntw.Node().ID().ID
 			msg2, err := ntw.Node().RequestMessage(ctx, id.Address, msg)
 			if err != nil {
 				fmt.Printf("Failed to send message to %s(%s). Skipping... [error: %s]\n",
@@ -163,24 +193,9 @@ func chat(ntw *network.Network, line string) {
 		return
 	}
 
-	for _, id := range ntw.Peers() {
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		msg := network.Message{}
-		msg.From = ntw.Node().ID()
-		msg.Data = []byte(line)
-		msg.SeqNum = byte(3)
-		msg.Code = byte(3)
-		fmt.Printf("msg %v", msg.String())
-		err := ntw.Node().SendMessage(ctx, id.Address, msg)
-		cancel()
-
-		if err != nil {
-			fmt.Printf("Failed to send message to %s(%s). Skipping... [error: %s]\n",
-				id.Address,
-				id.ID.String()[:printedLength],
-				err,
-			)
-			continue
-		}
-	}
+	msg := broadcast.Message{}
+	msg.From = ntw.Node().ID()
+	msg.Data = []byte(line)
+	// fmt.Printf("msg %v", msg.String())
+	ntw.Broadcast(msg)
 }
