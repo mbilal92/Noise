@@ -1,6 +1,7 @@
 package broadcast
 
 import (
+	"encoding/hex"
 	"strconv"
 
 	"github.com/mbilal92/noise"
@@ -23,7 +24,7 @@ func (msg Message) Marshal() []byte {
 }
 
 func (m Message) String() string {
-	return "\nFrom " + m.From.String() + " Code: " + strconv.Itoa(int(m.Code)) + " msg: " + string(m.Data) + "\n"
+	return "\nFrom " + m.From.String() + " Code: " + strconv.Itoa(int(m.Code)) + " msg: " + hex.EncodeToString(m.Data) + "\n"
 }
 
 func UnmarshalMessage(buf []byte) (Message, error) {
