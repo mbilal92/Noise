@@ -231,7 +231,7 @@ func (ntw *Network) RelayToPB(peerID noise.PublicKey, code byte, data []byte) {
 }
 
 func (ntw *Network) Relay(peerID noise.ID, code byte, data []byte) {
-	ntw.Relay(peerID.ID, code, data)
+	ntw.RelayToPB(peerID.ID, code, data)
 }
 
 func (ntw *Network) Close() {

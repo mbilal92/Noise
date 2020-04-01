@@ -150,11 +150,11 @@ func UnmarshalSignature(data []byte) Signature {
 func PersistKey(filepath string, key PrivateKey) {
 	f, err := os.Create(filepath)
 	if err != nil {
-		panic(err1)
+		panic(err)
 	}
 	defer f.Close()
 
-	_, err2 := f.WriteString(keys.String() + "\n")
+	_, err2 := f.WriteString(key.String() + "\n")
 	if err2 != nil {
 		panic(err2)
 	}
@@ -168,17 +168,20 @@ func LoadKey(filepath string) PrivateKey {
 	}
 	defer f.Close()
 
-	r := bufio.NewReader(f)
-	l, err := r.ReadString('\n')
-	if err == io.EOF {
-		break
+	for {
+		r := bufio.NewReader(f)
+		l, err := r.ReadString('\n')
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			panic(err)
+		}
+		privateKey, err := LoadKeysFromHex(strings.TrimSpace(l))
+		if err != nil {
+			panic(err)
+		}
+		return privateKey
 	}
-	if err != nil {
-		panic(err)
-	}
-	privateKey, err := LoadKeysFromHex(strings.TrimSpace(l))
-	if err != nil {
-		panic(err)
-	}
-	return privateKey
+	return ZeroPrivateKey
 }
