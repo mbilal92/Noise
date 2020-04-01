@@ -35,20 +35,20 @@ func check(err error) {
 // printedLength is the total prefix length of a public key associated to a chat users ID.
 const printedLength = 8
 
-func GetLocalIP() net.IP {
+func GetLocalIP() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
-		return nil
+		return ""
 	}
 	for _, address := range addrs {
 		// check the address type and if it is not a loopback the display it
 		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
-				return ipnet.IP
+				return ipnet.IP.String()
 			}
 		}
 	}
-	return nil
+	return ""
 }
 
 // An example chat application on Noise.
@@ -71,6 +71,7 @@ func main() {
 	ntw.Bootstrap(pflag.Args(), 3*time.Second, 8)
 
 	go ntw.Process()
+
 	// Accept chat message inputs and handle chat commands in a separate goroutine.
 	go input(func(line string) {
 		chat(ntw, line)

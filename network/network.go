@@ -2,6 +2,7 @@ package network
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -61,8 +62,12 @@ func check(err error) {
 const printedLength = 8
 
 // New creates and returns a new network instance.
-func New(host net.IP, port uint16, privatekey noise.PrivateKey, logger *zap.Logger) (*Network, error) {
+func New(hostStr string, port uint16, privatekey noise.PrivateKey, logger *zap.Logger) (*Network, error) {
 	// Set up node and policy.
+	host := net.ParseIP(hostStr)
+	if host == nil {
+		return nil, errors.New("host in provided public address is invalid (must be IPv4/IPv6)")
+	}
 
 	node, err := noise.NewNode(
 		noise.WithNodeBindHost(host), //net.ParseIP(host)),
