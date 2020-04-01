@@ -97,6 +97,16 @@ func (k PublicKey) String() string {
 	return hex.EncodeToString(k[:])
 }
 
+// String returns the hexadecimal representation of this public key.
+func (k PublicKey) ToByte() []byte {
+	return k[:]
+}
+
+// String returns the hexadecimal representation of this public key.
+func (k PrivateKey) ToByte() []byte {
+	return k[:]
+}
+
 // MarshalJSON returns the hexadecimal representation of this public key in JSON. It should never throw an error.
 func (k PublicKey) MarshalJSON() ([]byte, error) {
 	return json.Marshal(k.String())
