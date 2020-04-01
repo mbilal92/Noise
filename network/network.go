@@ -167,9 +167,8 @@ func (ntw *Network) Discover() {
 }
 
 // peers prints out all peers we are already aware of.
-func (ntw *Network) Peers() []noise.ID {
-	ids := ntw.overlay.Table().Peers()
-	return ids
+func (ntw *Network) GetPeerAddrs() []noise.ID {
+	return ntw.overlay.Table().Peers()
 }
 
 // BootstrapDefault runs Bootstrap with default parameters.
@@ -203,9 +202,14 @@ func (ntw *Network) GetNumPeers() int {
 }
 
 // Broadcast broadcasts data to the entire p2p network.
-func (ntw *Network) Broadcast(msg broadcast.Message) {
+func (ntw *Network) Broadcast(code byte, data []byte) {
 	// ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	// fmt.Println("Broad CAST HERE")
+	msg := broadcast.Message{}
+	msg.From = ntw.Node().ID()
+	msg.Data = data
+	msg.Code = code
+
 	ntw.broadcastHub.Push(context.TODO(), msg)
 	// cancel()
 }
@@ -214,10 +218,20 @@ func (ntw *Network) FindPeer(target noise.PublicKey) []noise.ID {
 	return ntw.overlay.Table().FindClosest(target, 16)
 }
 
-func (ntw *Network) RelayMsg(msg relay.Message) {
+func (ntw *Network) RelayToPB(peerID noise.PublicKey, code byte, data []byte) {
 	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	msg := relay.Message{}
+	msg.From = ntw.node.ID()
+	msg.Data = data
+	msg.To = peerID
+	msg.Code = code
+
 	ntw.relayHub.Relay(context.TODO(), msg)
 	// cancel()
+}
+
+func (ntw *Network) Relay(peerID noise.ID, code byte, data []byte) {
+	ntw.Relay(peerID.ID, code, data)
 }
 
 func (ntw *Network) Close() {

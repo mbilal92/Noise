@@ -1,13 +1,17 @@
 package noise
 
 import (
+	"bufio"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/oasislabs/ed25519"
 	"io"
+	"os"
 	"reflect"
+	"strings"
 	"unsafe"
+
+	"github.com/oasislabs/ed25519"
 )
 
 const (
@@ -83,6 +87,11 @@ func (k PublicKey) Verify(data []byte, signature Signature) bool {
 	return ed25519.Verify(k[:], data, signature[:])
 }
 
+// Verify returns true if the cryptographic signature of data is representative of this public key.
+func (k PublicKey) VerifyB(data []byte, signature []byte) bool {
+	return ed25519.Verify(k[:], data, signature)
+}
+
 // String returns the hexadecimal representation of this public key.
 func (k PublicKey) String() string {
 	return hex.EncodeToString(k[:])
@@ -96,6 +105,11 @@ func (k PublicKey) MarshalJSON() ([]byte, error) {
 // Sign uses this private key to sign data and return its cryptographic signature as a slice of bytes.
 func (k PrivateKey) Sign(data []byte) Signature {
 	return UnmarshalSignature(ed25519.Sign(k[:], data))
+}
+
+// Sign uses this private key to sign data and return its cryptographic signature as a slice of bytes.
+func (k PrivateKey) SignB(data []byte) []byte {
+	return ed25519.Sign(k[:], data)
 }
 
 // String returns the hexadecimal representation of this private key.
@@ -131,4 +145,40 @@ func (s Signature) MarshalJSON() ([]byte, error) {
 func UnmarshalSignature(data []byte) Signature {
 	_ = data[SizeSignature-1]
 	return *(*Signature)(unsafe.Pointer((*reflect.SliceHeader)(unsafe.Pointer(&data)).Data))
+}
+
+func PersistKey(filepath string, key PrivateKey) {
+	f, err := os.Create(filepath)
+	if err != nil {
+		panic(err1)
+	}
+	defer f.Close()
+
+	_, err2 := f.WriteString(keys.String() + "\n")
+	if err2 != nil {
+		panic(err2)
+	}
+}
+
+// LoadKeypairs loads a list of key pairs from the specified file.
+func LoadKey(filepath string) PrivateKey {
+	f, err := os.Open(filepath)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	r := bufio.NewReader(f)
+	l, err := r.ReadString('\n')
+	if err == io.EOF {
+		break
+	}
+	if err != nil {
+		panic(err)
+	}
+	privateKey, err := LoadKeysFromHex(strings.TrimSpace(l))
+	if err != nil {
+		panic(err)
+	}
+	return privateKey
 }
