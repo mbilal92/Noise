@@ -4,6 +4,7 @@ package relay
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/VictoriaMetrics/fastcache"
@@ -142,7 +143,7 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 	p.seen.Set(self, nil) // Mark that we already have this data.
 
 	if msg.To == p.node.ID().ID {
-		// fmt.Println("Relay Handle Found Node")
+		fmt.Printf("Relay Msg Received %v\n", msg.String())
 		p.relayChan <- msg
 	} else {
 		// fmt.Println("Relay Handle Relaying further")

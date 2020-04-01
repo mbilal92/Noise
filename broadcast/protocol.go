@@ -4,6 +4,7 @@ package broadcast
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/VictoriaMetrics/fastcache"
 	"github.com/mbilal92/noise"
@@ -122,6 +123,7 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 	p.seen.Set(self, nil) // Mark that we already have this data.
 
 	p.relayChan <- msg
+	fmt.Printf("BroadCast Msg Received %v\n", msg.String())
 	// if p.events.OnGossipReceived != nil {
 	// 	if err := p.events.OnGossipReceived(p.node, ctx.ID(), msg); err != nil {
 	// 		return err
