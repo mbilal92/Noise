@@ -21,7 +21,7 @@ const (
 	// DefaultBootstrapTimeout is the default timeout for bootstrapping with each peer.
 	DefaultBootstrapTimeout = time.Second * 10
 	// DefaultPeerThreshold is the default threshold above which bootstrapping is considered successful
-	DefaultPeerThreshold = 8
+	DefaultPeerThreshold = 3
 	MsgChanSize          = 64
 )
 
@@ -149,9 +149,9 @@ func (ntw *Network) Bootstrap(peerAddrs []string, timeout time.Duration, peerThr
 
 	}
 
-	// if ntw.GetNumPeers() <= peerThreshold {
-	// 	ntw.Discover()
-	// }
+	if ntw.GetNumPeers() <= peerThreshold {
+		ntw.Discover()
+	}
 
 	return true
 }

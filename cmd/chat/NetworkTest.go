@@ -64,7 +64,9 @@ func main() {
 
 	// Create a new configured node.
 	localIP := GetLocalIP()
-	ntw, err := network.New(localIP, *portFlag, noise.ZeroPrivateKey, nil)
+	_, PrKey, _ := noise.GenerateKeys(nil)
+	noise.PersistKey("NetworkTest.txt", PrKey)
+	ntw, err := network.New(localIP, *portFlag, PrKey, nil)
 	check(err)
 	defer ntw.Close()
 
