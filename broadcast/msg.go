@@ -9,22 +9,24 @@ import (
 )
 
 type Message struct {
-	From noise.ID
-	Code byte
-	Data []byte
+	From    noise.ID
+	Code    byte
+	randomN uint32
+	Data    []byte
 }
 
 func (msg Message) Marshal() []byte {
 	writer := payload.NewWriter(nil)
 	writer.Write(msg.From.Marshal())
 	writer.WriteByte(msg.Code)
+	writer.WriteUint32(msg.randomN)
 	writer.WriteUint32(uint32(len(msg.Data)))
 	writer.Write(msg.Data)
 	return writer.Bytes()
 }
 
 func (m Message) String() string {
-	return "\nFrom " + m.From.String() + " Code: " + strconv.Itoa(int(m.Code)) + " msg: " + hex.EncodeToString(m.Data) + "\n"
+	return " From " + m.From.String() + " Code: " + strconv.Itoa(int(m.Code)) + " msg: " + hex.EncodeToString(m.Data) + "\n"
 }
 
 func UnmarshalMessage(buf []byte) (Message, error) {
@@ -39,6 +41,12 @@ func UnmarshalMessage(buf []byte) (Message, error) {
 		panic(err)
 	}
 	msg.Code = code
+
+	randomN, err := reader.ReadUint32()
+	if err != nil {
+		panic(err)
+	}
+	msg.randomN = randomN
 
 	data, err := reader.ReadBytes()
 	if err != nil {

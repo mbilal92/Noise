@@ -5,6 +5,7 @@ package relay
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/VictoriaMetrics/fastcache"
@@ -20,10 +21,11 @@ const (
 // Protocol implements a simple gossiping protocol that avoids resending messages to peers that it already believes
 // is aware of particular messages that are being gossiped.
 type Protocol struct {
-	node      *noise.Node
-	overlay   *kademlia.Protocol
-	events    Events
-	relayChan chan Message
+	node           *noise.Node
+	overlay        *kademlia.Protocol
+	events         Events
+	relayChan      chan Message
+	msgSentCounter uint32
 
 	seen *fastcache.Cache
 }
@@ -31,9 +33,10 @@ type Protocol struct {
 // New returns a new instance of a gossip protocol with 32MB of in-memory cache instantiated.
 func New(overlay *kademlia.Protocol, opts ...Option) *Protocol {
 	p := &Protocol{
-		overlay:   overlay,
-		seen:      fastcache.New(32 << 20),
-		relayChan: make(chan Message, broadcastChanSize),
+		overlay:        overlay,
+		seen:           fastcache.New(32 << 20),
+		relayChan:      make(chan Message, broadcastChanSize),
+		msgSentCounter: 0,
 	}
 
 	for _, opt := range opts {
@@ -67,8 +70,13 @@ func (p *Protocol) Bind(node *noise.Node) error {
 // believes that the aforementioned peer has not received data before. A context may be provided to cancel Push, as it
 // blocks the current goroutine until the gossiping of a single message is done. Any errors pushing a message to a
 // particular peer is ignored.
-func (p *Protocol) Relay(ctx context.Context, msg Message) {
+func (p *Protocol) Relay(ctx context.Context, msg Message, changeRandomN bool) {
 	// fmt.Println("Relay 1")
+	if changeRandomN {
+		msg.randomN = p.msgSentCounter
+		atomic.AddUint32(&p.msgSentCounter, 1)
+	}
+
 	data := msg.Marshal()
 	p.seen.Set(p.hash(p.node.ID(), data), nil)
 
@@ -147,7 +155,7 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 		p.relayChan <- msg
 	} else {
 		// fmt.Println("Relay Handle Relaying further")
-		go p.Relay(context.TODO(), msg)
+		go p.Relay(context.TODO(), msg, false)
 	}
 
 	// if p.events.OnGossipReceived != nil {

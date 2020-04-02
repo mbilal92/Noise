@@ -5,6 +5,7 @@ package broadcast
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/VictoriaMetrics/fastcache"
 	"github.com/mbilal92/noise"
@@ -18,10 +19,11 @@ const (
 // Protocol implements a simple gossiping protocol that avoids resending messages to peers that it already believes
 // is aware of particular messages that are being gossiped.
 type Protocol struct {
-	node      *noise.Node
-	overlay   *kademlia.Protocol
-	events    Events
-	relayChan chan Message
+	node           *noise.Node
+	overlay        *kademlia.Protocol
+	events         Events
+	relayChan      chan Message
+	msgSentCounter uint32
 
 	seen *fastcache.Cache
 }
@@ -65,7 +67,12 @@ func (p *Protocol) Bind(node *noise.Node) error {
 // believes that the aforementioned peer has not received data before. A context may be provided to cancel Push, as it
 // blocks the current goroutine until the gossiping of a single message is done. Any errors pushing a message to a
 // particular peer is ignored.
-func (p *Protocol) Push(ctx context.Context, msg Message) {
+func (p *Protocol) Push(ctx context.Context, msg Message, changeRandomN bool) {
+	if changeRandomN {
+		msg.randomN = p.msgSentCounter
+		atomic.AddUint32(&p.msgSentCounter, 1)
+	}
+
 	data := msg.Marshal()
 	p.seen.Set(p.hash(p.node.ID(), data), nil)
 
@@ -130,7 +137,7 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 	// 	}
 	// }
 
-	p.Push(context.Background(), msg)
+	p.Push(context.Background(), msg, false)
 
 	return nil
 }

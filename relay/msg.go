@@ -9,16 +9,18 @@ import (
 )
 
 type Message struct {
-	From noise.ID
-	Code byte
-	To   noise.PublicKey
-	Data []byte
+	From    noise.ID
+	Code    byte
+	randomN uint32
+	To      noise.PublicKey
+	Data    []byte
 }
 
 func (msg Message) Marshal() []byte {
 	writer := payload.NewWriter(nil)
 	writer.Write(msg.From.Marshal())
 	writer.WriteByte(msg.Code)
+	writer.WriteUint32(msg.randomN)
 	writer.WriteUint32(uint32(len(msg.To[:])))
 	writer.Write([]byte(msg.To[:]))
 	writer.WriteUint32(uint32(len(msg.Data)))
@@ -27,7 +29,7 @@ func (msg Message) Marshal() []byte {
 }
 
 func (m Message) String() string {
-	return "\nFrom " + m.From.String() + " To:" + m.To.String() + " Code: " + strconv.Itoa(int(m.Code)) + " msg: " + hex.EncodeToString(m.Data) + "\n"
+	return " From " + m.From.String() + " To:" + m.To.String() + " Code: " + strconv.Itoa(int(m.Code)) + " msg: " + hex.EncodeToString(m.Data) + "\n"
 }
 
 func UnmarshalMessage(buf []byte) (Message, error) {
@@ -42,6 +44,12 @@ func UnmarshalMessage(buf []byte) (Message, error) {
 		panic(err)
 	}
 	msg.Code = code
+
+	randomN, err := reader.ReadUint32()
+	if err != nil {
+		panic(err)
+	}
+	msg.randomN = randomN
 
 	to, err := reader.ReadBytes()
 	if err != nil {
