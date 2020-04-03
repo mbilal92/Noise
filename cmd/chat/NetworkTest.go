@@ -63,9 +63,14 @@ func main() {
 	defer logger.Sync()
 
 	// Create a new configured node.
+	ports := string(*portFlag)
+	PrKey := noise.LoadKey(ports + ".txt")
 	localIP := GetLocalIP()
-	_, PrKey, _ := noise.GenerateKeys(nil)
-	noise.PersistKey("NetworkTest.txt", PrKey)
+	if PrKey == noise.ZeroPrivateKey {
+		_, PrKey, _ = noise.GenerateKeys(nil)
+		noise.PersistKey(ports+".txt", PrKey)
+	}
+
 	ntw, err := network.New(localIP, *portFlag, PrKey, logger)
 	check(err)
 	defer ntw.Close()

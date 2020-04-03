@@ -511,7 +511,7 @@ func (c *Client) handshake() {
 		return
 	}
 
-	host := net.ParseIP(hostStr)
+	host := net.ParseIP(hostStr).To4()
 	if host == nil {
 		c.reportError(fmt.Errorf("host in provided public address is invalid (must be IPv4/IPv6) %w", hostStr))
 		return

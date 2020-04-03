@@ -174,7 +174,7 @@ func PersistKey(filepath string, key PrivateKey) {
 func LoadKey(filepath string) PrivateKey {
 	f, err := os.Open(filepath)
 	if err != nil {
-		panic(err)
+		return ZeroPrivateKey
 	}
 	defer f.Close()
 
