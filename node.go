@@ -398,10 +398,10 @@ func (n *Node) dialIfNotExists(ctx context.Context, addr string) (*Client, error
 
 	for i := uint(0); i < n.maxDialAttempts; i++ {
 		// client, exists := n.outbound.get(n, addr)
-		fmt.Println("Here dialIfNotExists1 for addr: %v\n", addr)
+		// fmt.Println("Here dialIfNotExists1 for addr: %v\n", addr)
 		client, exists := n.connections.get(n, addr)
 		if !exists {
-			fmt.Printf("\n Client not found %v adding to OutBound \n", addr)
+			// fmt.Printf("\n Client not found %v adding to OutBound \n", addr)
 			go client.outbound(ctx, addr)
 		}
 

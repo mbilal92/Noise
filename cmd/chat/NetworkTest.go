@@ -66,7 +66,7 @@ func main() {
 	localIP := GetLocalIP()
 	_, PrKey, _ := noise.GenerateKeys(nil)
 	noise.PersistKey("NetworkTest.txt", PrKey)
-	ntw, err := network.New(localIP, *portFlag, PrKey, nil)
+	ntw, err := network.New(localIP, *portFlag, PrKey, logger)
 	check(err)
 	defer ntw.Close()
 
