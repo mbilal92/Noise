@@ -458,10 +458,17 @@ func (c *Client) handshake() {
 	}
 
 	c.suite = suite
-
+	var buf []byte
 	// Send to our peer our overlay ID.
-
-	buf := c.node.id.Marshal()
+	if c.node.nat != nil {
+		externalIP, err := c.node.nat.ExternalIP()
+		if err == nil {
+			tmpID := NewID(c.node.publicKey, externalIP, c.node.port)
+			buf = tmpID.Marshal()
+		}
+	} else {
+		buf = c.node.id.Marshal()
+	}
 	signature = c.node.Sign(append(buf, shared...))
 	buf = append(buf, signature[:]...)
 
