@@ -97,14 +97,22 @@ func NewNode(opts ...NodeOption) (*Node, error) {
 	copy(n.publicKey[:], ed25519.PrivateKey(n.privateKey[:]).Public().(ed25519.PublicKey)[:])
 
 	n.nat = nat.NewUPnP()
+	if n.nat == nil {
+		n.nat = nat.NewPMP()
+	}
+
 	if n.nat != nil {
 		err := n.nat.AddMapping("tcp", n.port, n.externalPort, 1*time.Hour)
 		if err != nil {
 			return nil, errors.New(" nat: failed to port-forward")
 		}
-		externalIP, _ := n.nat.ExternalIP()
+		externalIP, err := n.nat.ExternalIP()
+		if err != nil {
+			return nil, errors.New("Could not find NAT public IP")
+		}
 		n.externalIP = externalIP.To4()
 	}
+
 	if n.id.ID == ZeroPublicKey && n.host != nil && n.port > 0 {
 		n.id = NewID(n.publicKey, n.host, n.port)
 	}
