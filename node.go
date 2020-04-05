@@ -104,21 +104,11 @@ func NewNode(opts ...NodeOption) (*Node, error) {
 		}
 		externalIP, _ := n.nat.ExternalIP()
 		n.externalIP = externalIP.To4()
-		// fmt.Printf("Got ExternalIP: %v\n", externalIP)
-		// if err == nil {
-		// 	if n.id.ID == ZeroPublicKey && externalIP != nil && n.port > 0 {
-		// 		n.id = NewID(n.publicKey, externalIP, n.port)
-		// 		fmt.Printf("1) n.id: %v\n", n.id)
-		// 	}
 	}
-	// } else {
 	if n.id.ID == ZeroPublicKey && n.host != nil && n.port > 0 {
 		n.id = NewID(n.publicKey, n.host, n.port)
-		fmt.Printf("2) n.id: %v\n", n.id)
 	}
-	// }
 
-	fmt.Printf("3) n.id: %v\n", n.id)
 	// n.inbound = newClientMap(n.maxInboundConnections)
 	// n.outbound = newClientMap(n.maxOutboundConnections)
 
@@ -157,7 +147,6 @@ func (n *Node) Listen() error {
 		n.listener.Close()
 		return errors.New("did not bind to a tcp addr")
 	}
-	fmt.Printf("listerner Addr %v\n", addr)
 	n.host = addr.IP
 	n.port = uint16(addr.Port)
 

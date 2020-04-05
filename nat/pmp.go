@@ -67,5 +67,6 @@ func NewPMP() Provider {
 		}
 	}
 
-	panic("natpmp: unable to find gateway that supports NAT-PMP")
+	// panic("natpmp: unable to find gateway that supports NAT-PMP")
+	return nil
 }
