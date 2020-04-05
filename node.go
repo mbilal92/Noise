@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mbilal92/noise/nat"
 	"github.com/oasislabs/ed25519"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
@@ -25,14 +26,16 @@ import (
 type Node struct {
 	logger *zap.Logger
 
-	host net.IP
-	port uint16
-	addr string
+	host               net.IP
+	port, externalPort uint16
+	addr               string
 
 	publicKey  PublicKey
 	privateKey PrivateKey
 
 	id ID
+
+	nat nat.Provider
 
 	maxDialAttempts        uint
 	maxInboundConnections  uint
@@ -80,6 +83,7 @@ func NewNode(opts ...NodeOption) (*Node, error) {
 		n.logger = zap.NewNop()
 	}
 
+	n.externalPort = n.port
 	if n.privateKey == ZeroPrivateKey {
 		_, privateKey, err := ed25519.GenerateKey(nil)
 		if err != nil {
@@ -91,8 +95,22 @@ func NewNode(opts ...NodeOption) (*Node, error) {
 
 	copy(n.publicKey[:], ed25519.PrivateKey(n.privateKey[:]).Public().(ed25519.PublicKey)[:])
 
-	if n.id.ID == ZeroPublicKey && n.host != nil && n.port > 0 {
-		n.id = NewID(n.publicKey, n.host, n.port)
+	n.nat = nat.NewUPnP()
+	// if n.nat != nil {
+	err := n.nat.AddMapping("tcp", n.port, n.externalPort, 1*time.Hour)
+	if err != nil {
+		return nil, errors.New(" nat: failed to port-forward")
+	}
+	// }
+	externalIP, err := n.nat.ExternalIP()
+	if err != nil {
+		if n.id.ID == ZeroPublicKey && externalIP != nil && n.port > 0 {
+			n.id = NewID(n.publicKey, externalIP, n.port)
+		}
+	} else {
+		if n.id.ID == ZeroPublicKey && n.host != nil && n.port > 0 {
+			n.id = NewID(n.publicKey, n.host, n.port)
+		}
 	}
 
 	// n.inbound = newClientMap(n.maxInboundConnections)
@@ -133,7 +151,7 @@ func (n *Node) Listen() error {
 		n.listener.Close()
 		return errors.New("did not bind to a tcp addr")
 	}
-
+	fmt.Printf("listerner Addr %v\n", addr)
 	n.host = addr.IP
 	n.port = uint16(addr.Port)
 
@@ -387,6 +405,14 @@ func (n *Node) Close() error {
 		}
 	}
 
+	if n.nat != nil {
+		err := n.nat.DeleteMapping("tcp", n.port, n.port)
+
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	<-n.listenerDone
 
 	return nil
@@ -527,4 +553,17 @@ func (n *Node) Logger() *zap.Logger {
 // ID may be called concurrently.
 func (n *Node) ID() ID {
 	return n.id
+}
+
+func (n *Node) ExternalAddress() string {
+	if n.nat != nil && nat.IsPrivateIP(n.host) {
+		externalIP, err := n.nat.ExternalIP()
+		if err != nil {
+			panic(err)
+		}
+
+		return fmt.Sprintf("%s:%d", externalIP.String(), n.externalPort)
+	}
+
+	return fmt.Sprintf("%s:%d", n.host, n.externalPort)
 }

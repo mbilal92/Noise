@@ -259,3 +259,7 @@ func (ntw *Network) Process() {
 		}
 	}
 }
+
+func (ntw *Network) ExternalAddress() string {
+	return ntw.node.ExternalAddress()
+}

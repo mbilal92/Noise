@@ -125,10 +125,11 @@ func input(callback func(string)) {
 
 // help prints out the users ID and commands available.
 func help(node *noise.Node) {
-	fmt.Printf("Your ID is %s(%s). Type '/discover' to attempt to discover new "+
+	fmt.Printf("Your ID is %s(%s) With ExternalAddress %s. Type '/discover' to attempt to discover new "+
 		"peers, or '/peers' to list out all peers you are connected to.\n",
 		node.ID().Address,
 		node.ID().ID.String()[:printedLength],
+		node.ExternalAddress(),
 	)
 }
 

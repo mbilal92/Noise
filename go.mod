@@ -4,6 +4,8 @@ go 1.13
 
 require (
 	github.com/VictoriaMetrics/fastcache v1.5.7
+	github.com/huin/goupnp v1.0.0
+	github.com/jackpal/go-nat-pmp v1.0.2
 	github.com/oasislabs/ed25519 v0.0.0-20200302143042-29f6767a7c3e
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/pflag v1.0.5
