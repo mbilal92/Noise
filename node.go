@@ -102,7 +102,8 @@ func NewNode(opts ...NodeOption) (*Node, error) {
 		if err != nil {
 			return nil, errors.New(" nat: failed to port-forward")
 		}
-		n.externalIP, _ = n.nat.ExternalIP()
+		externalIP, _ := n.nat.ExternalIP()
+		n.externalIP = externalIP.To4()
 		// fmt.Printf("Got ExternalIP: %v\n", externalIP)
 		// if err == nil {
 		// 	if n.id.ID == ZeroPublicKey && externalIP != nil && n.port > 0 {
