@@ -27,6 +27,7 @@ type Node struct {
 	logger *zap.Logger
 
 	host               net.IP
+	externalIP         net.IP
 	port, externalPort uint16
 	addr               string
 
@@ -101,7 +102,7 @@ func NewNode(opts ...NodeOption) (*Node, error) {
 		if err != nil {
 			return nil, errors.New(" nat: failed to port-forward")
 		}
-		// externalIP, err := n.nat.ExternalIP()
+		n.externalIP, _ = n.nat.ExternalIP()
 		// fmt.Printf("Got ExternalIP: %v\n", externalIP)
 		// if err == nil {
 		// 	if n.id.ID == ZeroPublicKey && externalIP != nil && n.port > 0 {

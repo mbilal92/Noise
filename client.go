@@ -461,11 +461,9 @@ func (c *Client) handshake() {
 	var buf []byte
 	// Send to our peer our overlay ID.
 	if c.node.nat != nil {
-		externalIP, err := c.node.nat.ExternalIP()
-		if err == nil {
-			tmpID := NewID(c.node.publicKey, externalIP, c.node.port)
-			buf = tmpID.Marshal()
-		}
+		tmpID := NewID(c.node.publicKey, c.node.externalIP, c.node.port)
+		fmt.Printf("2) n.id: %v\n", tmpID)
+		buf = tmpID.Marshal()
 	} else {
 		buf = c.node.id.Marshal()
 	}
