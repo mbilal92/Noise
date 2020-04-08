@@ -4,6 +4,7 @@ package relay
 
 import (
 	"context"
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -150,7 +151,7 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 	p.seen.Set(self, nil) // Mark that we already have this data.
 
 	if msg.To == p.node.ID().ID {
-		// fmt.Printf("Relay Msg Received at Node %v - %v\n", p.node.Addr(), msg.String())
+		fmt.Printf("Relay Msg Received at Node %v - %v\n", p.node.Addr(), msg.String())
 		p.relayChan <- msg
 	} else {
 		// fmt.Println("Relay Handle Relaying further")
