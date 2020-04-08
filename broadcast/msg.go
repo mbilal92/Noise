@@ -26,7 +26,7 @@ func (msg Message) Marshal() []byte {
 }
 
 func (m Message) String() string {
-	return " From " + m.From.String() + " Code: " + strconv.Itoa(int(m.Code)) + " msg: " + hex.EncodeToString(m.Data) + "\n"
+	return " From " + m.From.String() + "SeqNum: " + strconv.FormatUint(uint64(m.randomN), 10) + " Code: " + strconv.Itoa(int(m.Code)) + " msg: " + hex.EncodeToString(m.Data) + "\n"
 }
 
 func UnmarshalMessage(buf []byte) (Message, error) {

@@ -75,6 +75,7 @@ func (p *Protocol) Relay(ctx context.Context, msg Message, changeRandomN bool) {
 	if changeRandomN {
 		msg.randomN = p.msgSentCounter
 		atomic.AddUint32(&p.msgSentCounter, 1)
+		fmt.Printf("Sending BroadCast Msg at Node %v - %v\n", p.node.Addr(), msg.String())
 	}
 
 	data := msg.Marshal()
