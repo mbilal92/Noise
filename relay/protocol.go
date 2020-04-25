@@ -79,7 +79,7 @@ func (p *Protocol) Relay(ctx context.Context, msg Message, changeRandomN bool) {
 	}
 
 	data := msg.Marshal()
-	p.seen.Set(p.hash(p.node.ID(), data), nil)
+	p.seen.SetBig(p.hash(p.node.ID(), data), nil)
 
 	localPeerAddress := p.overlay.Table().AddressFromPK(msg.To)
 	if localPeerAddress != "" {
@@ -113,7 +113,7 @@ func (p *Protocol) Relay(ctx context.Context, msg Message, changeRandomN bool) {
 				return
 			}
 
-			p.seen.Set(key, nil)
+			p.seen.SetBig(key, nil)
 		}()
 	}
 
@@ -140,7 +140,7 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 
 	// fmt.Printf("Handle received msg %v\n", msg.String())
 	data := msg.Marshal()
-	p.seen.Set(p.hash(ctx.ID(), data), nil) // Mark that the sender already has this data.
+	p.seen.SetBig(p.hash(ctx.ID(), data), nil) // Mark that the sender already has this data.
 	// fmt.Printf("Seen Hash set in Handle  for ID %v and data %v  %v\n", ctx.ID(), hex.EncodeToString(p.hash(ctx.ID(), data)))
 
 	self := p.hash(p.node.ID(), data)
@@ -149,7 +149,7 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 		return nil
 	}
 
-	p.seen.Set(self, nil) // Mark that we already have this data.
+	p.seen.SetBig(self, nil) // Mark that we already have this data.
 
 	if msg.To == p.node.ID().ID {
 		fmt.Printf("Relay Msg Received at Node %v From Peer %v - %v\n", p.node.Addr(), ctx.ID(), msg.String())

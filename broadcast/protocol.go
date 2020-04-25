@@ -75,7 +75,7 @@ func (p *Protocol) Push(ctx context.Context, msg Message, changeRandomN bool) {
 	}
 
 	data := msg.Marshal()
-	p.seen.Set(p.hash(p.node.ID(), data), nil)
+	p.seen.SetBig(p.hash(p.node.ID(), data), nil)
 
 	peers := p.overlay.Table().Entries()
 	// var wg sync.WaitGroup
@@ -95,7 +95,7 @@ func (p *Protocol) Push(ctx context.Context, msg Message, changeRandomN bool) {
 				return
 			}
 
-			p.seen.Set(key, nil)
+			p.seen.SetBig(key, nil)
 		}()
 	}
 
@@ -120,7 +120,7 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 	}
 
 	data := msg.Marshal()
-	p.seen.Set(p.hash(ctx.ID(), data), nil) // Mark that the sender already has this data.
+	p.seen.SetBig(p.hash(ctx.ID(), data), nil) // Mark that the sender already has this data.
 
 	self := p.hash(p.node.ID(), data)
 
@@ -128,7 +128,7 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 		return nil
 	}
 
-	p.seen.Set(self, nil) // Mark that we already have this data.
+	p.seen.SetBig(self, nil) // Mark that we already have this data.
 
 	p.relayChan <- msg
 	fmt.Printf("BroadCast Msg Received at Node %v From Peer %v - %v\n", p.node.Addr(), ctx.ID(), msg.String())
