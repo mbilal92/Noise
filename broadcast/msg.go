@@ -33,7 +33,7 @@ func (m Message) String() string {
 		msg = hex.EncodeToString(m.Data)
 	}
 
-	return " From " + m.From.String() + "SeqNum: " + strconv.FormatUint(uint64(m.randomN), 10) + " Code: " + strconv.Itoa(int(m.Code)) + " msg: " + msg + "\n"
+	return " From " + m.From.String() + " SeqNum: " + strconv.FormatUint(uint64(m.randomN), 10) + " Code: " + strconv.Itoa(int(m.Code)) + " msg: " + msg + "\n"
 }
 
 func UnmarshalMessage(buf []byte) (Message, error) {

@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"sync/atomic"
-	"time"
 
 	"github.com/VictoriaMetrics/fastcache"
 	"github.com/mbilal92/noise"
@@ -75,7 +74,7 @@ func (p *Protocol) Relay(ctx context.Context, msg Message, changeRandomN bool) {
 	if changeRandomN {
 		msg.randomN = p.msgSentCounter
 		atomic.AddUint32(&p.msgSentCounter, 1)
-		fmt.Printf("Sending BroadCast Msg at Node %v - %v\n", p.node.Addr(), msg.String())
+		fmt.Printf("Sending Relay Msg at Node %v - %v\n", p.node.Addr(), msg.String())
 	}
 
 	data := msg.Marshal()
@@ -132,7 +131,6 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 		return nil
 	}
 
-	time.Sleep(6)
 	msg, ok := obj.(Message)
 	if !ok {
 		return nil
