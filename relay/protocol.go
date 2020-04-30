@@ -25,17 +25,18 @@ type Protocol struct {
 	events         Events
 	relayChan      chan Message
 	msgSentCounter uint32
-
-	seen *fastcache.Cache
+	Logging        bool
+	seen           *fastcache.Cache
 }
 
 // New returns a new instance of a gossip protocol with 32MB of in-memory cache instantiated.
-func New(overlay *kademlia.Protocol, opts ...Option) *Protocol {
+func New(overlay *kademlia.Protocol, log bool, opts ...Option) *Protocol {
 	p := &Protocol{
 		overlay:        overlay,
 		seen:           fastcache.New(32 << 20),
 		relayChan:      make(chan Message, broadcastChanSize),
 		msgSentCounter: 0,
+		Logging:        log,
 	}
 
 	for _, opt := range opts {
@@ -74,7 +75,9 @@ func (p *Protocol) Relay(ctx context.Context, msg Message, changeRandomN bool) {
 	if changeRandomN {
 		msg.randomN = p.msgSentCounter
 		atomic.AddUint32(&p.msgSentCounter, 1)
-		fmt.Printf("Sending Relay Msg at Node %v - %v\n", p.node.Addr(), msg.String())
+		if p.Logging {
+			fmt.Printf("Sending Relay Msg at Node %v - %v\n", p.node.Addr(), msg.String())
+		}
 	}
 
 	data := msg.Marshal()
@@ -150,7 +153,9 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 	p.seen.SetBig(self, nil) // Mark that we already have this data.
 
 	if msg.To == p.node.ID().ID {
-		fmt.Printf("Relay Msg Received at Node %v From Peer %v - %v\n", p.node.Addr(), ctx.ID(), msg.String())
+		if p.Logging {
+			fmt.Printf("Relay Msg Received at Node %v From Peer %v - %v\n", p.node.Addr(), ctx.ID(), msg.String())
+		}
 		p.relayChan <- msg
 	} else {
 		// fmt.Println("Relay Handle Relaying further")

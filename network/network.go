@@ -62,7 +62,7 @@ func check(err error) {
 const printedLength = 8
 
 // New creates and returns a new network instance.
-func New(hostStr string, port uint16, privatekey noise.PrivateKey, logger *zap.Logger) (*Network, error) {
+func New(hostStr string, port uint16, privatekey noise.PrivateKey, logger *zap.Logger, logging bool) (*Network, error) {
 	// Set up node and policy.
 	host := net.ParseIP(hostStr)
 	if host == nil {
@@ -107,8 +107,8 @@ func New(hostStr string, port uint16, privatekey noise.PrivateKey, logger *zap.L
 	// 	},
 	// }
 
-	broadcastHub := broadcast.New(overlay) //gossip.WithEvents(GosipEvents)
-	relayHub := relay.New(overlay)
+	broadcastHub := broadcast.New(overlay, logging) //gossip.WithEvents(GosipEvents)
+	relayHub := relay.New(overlay, logging)
 
 	node.Bind(
 		overlay.Protocol(),
