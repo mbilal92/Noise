@@ -4,6 +4,7 @@ package relay
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"sync/atomic"
 
@@ -70,7 +71,7 @@ func (p *Protocol) Bind(node *noise.Node) error {
 // believes that the aforementioned peer has not received data before. A context may be provided to cancel Push, as it
 // blocks the current goroutine until the gossiping of a single message is done. Any errors pushing a message to a
 // particular peer is ignored.
-func (p *Protocol) Relay(ctx context.Context, msg Message, changeRandomN bool) {
+func (p *Protocol) Relay(ctx context.Context, msg Message, changeRandomN bool, Fromid noise.ID) {
 	// fmt.Println("Relay 1")
 	if changeRandomN {
 		msg.randomN = p.msgSentCounter
@@ -81,7 +82,10 @@ func (p *Protocol) Relay(ctx context.Context, msg Message, changeRandomN bool) {
 	}
 
 	data := msg.Marshal()
-	p.seen.SetBig(p.hash(p.node.ID(), data), nil)
+	dataHash := p.hash(data)
+	if !p.seen.Has(dataHash) {
+		p.seen.SetBig(dataHash, nil)
+	}
 
 	localPeerAddress := p.overlay.Table().AddressFromPK(msg.To)
 	if localPeerAddress != "" {
@@ -99,8 +103,12 @@ func (p *Protocol) Relay(ctx context.Context, msg Message, changeRandomN bool) {
 	// wg.Add(len(peers))
 
 	for _, id := range peers {
-		id, key := id, p.hash(id, data)
+		id, key := id, dataHash
 		// key := p.hash(id, data)
+		if Fromid.ID.String() == id.ID.String() {
+			continue
+		}
+
 		go func() {
 			// defer wg.Done()
 
@@ -141,16 +149,22 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 
 	// fmt.Printf("Handle received msg %v\n", msg.String())
 	data := msg.Marshal()
-	p.seen.SetBig(p.hash(ctx.ID(), data), nil) // Mark that the sender already has this data.
-	// fmt.Printf("Seen Hash set in Handle  for ID %v and data %v  %v\n", ctx.ID(), hex.EncodeToString(p.hash(ctx.ID(), data)))
-
-	self := p.hash(p.node.ID(), data)
-
-	if p.seen.Has(self) {
+	dataHash := p.hash(data)
+	if p.seen.Has(dataHash) {
 		return nil
 	}
 
-	p.seen.SetBig(self, nil) // Mark that we already have this data.
+	// p.seen.SetBig(p.hash(ctx.ID(), data), nil) // Mark that the sender already has this data.
+	p.seen.SetBig(dataHash, nil) // Mark that the sender already has this data.
+	// fmt.Printf("Seen Hash set in Handle  for ID %v and data %v  %v\n", ctx.ID(), hex.EncodeToString(p.hash(ctx.ID(), data)))
+
+	// self := p.hash(p.node.ID(), data)
+
+	// if p.seen.Has(self) {
+	// 	return nil
+	// }
+
+	// p.seen.SetBig(self, nil) // Mark that we already have this data.
 
 	if msg.To == p.node.ID().ID {
 		if p.Logging {
@@ -159,7 +173,7 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 		p.relayChan <- msg
 	} else {
 		// fmt.Println("Relay Handle Relaying further")
-		go p.Relay(context.TODO(), msg, false)
+		go p.Relay(context.TODO(), msg, false, ctx.ID())
 	}
 
 	// if p.events.OnGossipReceived != nil {
@@ -171,8 +185,12 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 	return nil
 }
 
-func (p *Protocol) hash(id noise.ID, data []byte) []byte {
-	return append(id.ID[:], data...)
+// func (p *Protocol) hash(id noise.ID, data []byte) []byte {
+func (p *Protocol) hash(data []byte) []byte {
+	hasher := sha256.New()
+	hasher.Write(data)
+	return hasher.Sum(nil)
+	// return append(id.ID[:], data...)
 }
 
 func (p *Protocol) GetRelayChan() chan Message {
