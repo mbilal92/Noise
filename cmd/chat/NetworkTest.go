@@ -71,7 +71,7 @@ func main() {
 		noise.PersistKey(ports+".txt", PrKey)
 	}
 
-	ntw, err := network.New(localIP, *portFlag, PrKey, logger, true)
+	ntw, err := network.New(localIP, *portFlag, PrKey, nil, false)
 	check(err)
 	defer ntw.Close()
 
@@ -189,19 +189,22 @@ func chat(ntw *network.Network, line string) {
 				)
 				continue
 			} else {
-				fmt.Printf("GOR RESPONSE for Request %v", msg2.(network.Message).String())
+				fmt.Printf("GOT RESPONSE for Request %v", msg2.(network.Message).String())
 			}
 			cancel()
 		}
 		return
+	case "/cl":
+		fmt.Printf("Close Call")
+		ntw.RemovePeers()
+		ntw.Close()
 	default:
-	}
+		if strings.HasPrefix(line, "/") {
+			help(ntw.Node())
+			return
+		}
 
-	if strings.HasPrefix(line, "/") {
-		help(ntw.Node())
-		return
+		// fmt.Printf("msg %v", msg.String())
+		ntw.Broadcast(byte(0), []byte(line))
 	}
-
-	// fmt.Printf("msg %v", msg.String())
-	ntw.Broadcast(byte(0), []byte(line))
 }

@@ -570,3 +570,7 @@ func (n *Node) ExternalAddress() string {
 
 	return fmt.Sprintf("%s:%d", n.host, n.externalPort)
 }
+
+func (n *Node) CloseConnections() {
+	n.connections.release()
+}

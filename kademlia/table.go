@@ -151,8 +151,7 @@ func (t *Table) DeleteByAddress(target string) (noise.ID, bool) {
 	return noise.ID{}, false
 }
 
-// DeleteByAddress removes the first occurrence of an id with target as its address from this routing table. It
-// returns the id of the deleted target and true if found, or a zero-value ID and false otherwise.
+// AddressFromPK return the Address from Public ket
 func (t *Table) AddressFromPK(target noise.PublicKey) string {
 	t.Lock()
 	defer t.Unlock()

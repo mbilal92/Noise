@@ -240,7 +240,10 @@ func (ntw *Network) Relay(peerID noise.ID, code byte, data []byte) {
 }
 
 func (ntw *Network) Close() {
-	ntw.node.Close()
+	e := ntw.node.Close()
+	if e != nil {
+		fmt.Printf("network close error Msg : %v\n", e)
+	}
 }
 
 func (ntw *Network) Node() *noise.Node {
@@ -262,4 +265,13 @@ func (ntw *Network) Process() {
 
 func (ntw *Network) ExternalAddress() string {
 	return ntw.node.ExternalAddress()
+}
+
+func (ntw *Network) RemovePeers() {
+	ntw.Node().CloseConnections()
+	table := ntw.overlay.Table()
+	peers := table.Entries()
+	for _, peer := range peers {
+		table.Delete(peer.ID)
+	}
 }
