@@ -276,3 +276,7 @@ func (ntw *Network) RemovePeers() {
 		table.Delete(peer.ID)
 	}
 }
+
+func (ntw *Network) SetChainID(chainID string) {
+	ntw.node.SetChainID(chainID)
+}
