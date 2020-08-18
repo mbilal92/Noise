@@ -62,7 +62,7 @@ func check(err error) {
 const printedLength = 8
 
 // New creates and returns a new network instance.
-func New(hostStr string, port uint16, privatekey noise.PrivateKey, logger *zap.Logger, logging bool) (*Network, error) {
+func New(hostStr string, port uint16, privatekey noise.PrivateKey, chainId string, logger *zap.Logger, logging bool) (*Network, error) {
 	// Set up node and policy.
 	host := net.ParseIP(hostStr)
 	if host == nil {
@@ -77,6 +77,7 @@ func New(hostStr string, port uint16, privatekey noise.PrivateKey, logger *zap.L
 		// noise.WithNodeAddress(*addressFlag),
 	)
 
+	node.SetChainID(chainId)
 	check(err)
 	events := kademlia.Events{
 		OnPeerAdmitted: func(id noise.ID) {
@@ -215,7 +216,7 @@ func (ntw *Network) Broadcast(code byte, data []byte) {
 	msg.Data = data
 	msg.Code = code
 
-	ntw.broadcastHub.Push(context.TODO(), msg, true, msg.From)
+	ntw.broadcastHub.Push(context.TODO(), msg, true, msg.From, ntw.node.ChainID)
 	// cancel()
 }
 
@@ -231,7 +232,7 @@ func (ntw *Network) RelayToPB(peerID noise.PublicKey, code byte, data []byte) {
 	msg.To = peerID
 	msg.Code = code
 
-	ntw.relayHub.Relay(context.TODO(), msg, true, msg.From)
+	ntw.relayHub.Relay(context.TODO(), msg, true, msg.From, ntw.node.ChainID)
 	// cancel()
 }
 

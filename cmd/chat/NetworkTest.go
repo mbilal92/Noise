@@ -71,7 +71,7 @@ func main() {
 		noise.PersistKey(ports+".txt", PrKey)
 	}
 
-	ntw, err := network.New(localIP, *portFlag, PrKey, nil, false)
+	ntw, err := network.New(localIP, *portFlag, PrKey, "1.2", nil, false)
 	check(err)
 	defer ntw.Close()
 

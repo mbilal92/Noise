@@ -13,6 +13,7 @@ type Message struct {
 	Code    byte
 	randomN uint32
 	Data    []byte
+	ChainID string
 }
 
 func (msg Message) Marshal() []byte {
@@ -20,8 +21,8 @@ func (msg Message) Marshal() []byte {
 	writer.Write(msg.From.Marshal())
 	writer.WriteByte(msg.Code)
 	writer.WriteUint32(msg.randomN)
-	writer.WriteUint32(uint32(len(msg.Data)))
-	writer.Write(msg.Data)
+	writer.WriteString(msg.ChainID)
+	writer.WriteBytes(msg.Data)
 	return writer.Bytes()
 }
 
@@ -33,7 +34,7 @@ func (m Message) String() string {
 		msg = hex.EncodeToString(m.Data)
 	}
 
-	return " From " + m.From.String() + " SeqNum: " + strconv.FormatUint(uint64(m.randomN), 10) + " Code: " + strconv.Itoa(int(m.Code)) + " msg: " + msg + "\n"
+	return " From " + m.From.String() + " SeqNum: " + strconv.FormatUint(uint64(m.randomN), 10) + " Code: " + strconv.Itoa(int(m.Code)) + " ChainID: " + m.ChainID + " msg: " + msg + "\n"
 }
 
 func UnmarshalMessage(buf []byte) (Message, error) {
@@ -54,6 +55,12 @@ func UnmarshalMessage(buf []byte) (Message, error) {
 		panic(err)
 	}
 	msg.randomN = randomN
+
+	chainID, err := reader.ReadString()
+	if err != nil {
+		panic(err)
+	}
+	msg.ChainID = chainID
 
 	data, err := reader.ReadBytes()
 	if err != nil {

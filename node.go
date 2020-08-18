@@ -30,6 +30,7 @@ type Node struct {
 	externalIP         net.IP
 	port, externalPort uint16
 	addr               string
+	ChainID            string
 
 	publicKey  PublicKey
 	privateKey PrivateKey
@@ -573,4 +574,8 @@ func (n *Node) ExternalAddress() string {
 
 func (n *Node) CloseConnections() {
 	n.connections.release()
+}
+
+func (n *Node) SetChainID(chainID string) {
+	n.ChainID = chainID
 }

@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"strings"
 	"sync/atomic"
 
 	"github.com/VictoriaMetrics/fastcache"
@@ -71,7 +72,7 @@ func (p *Protocol) Bind(node *noise.Node) error {
 // believes that the aforementioned peer has not received data before. A context may be provided to cancel Push, as it
 // blocks the current goroutine until the gossiping of a single message is done. Any errors pushing a message to a
 // particular peer is ignored.
-func (p *Protocol) Relay(ctx context.Context, msg Message, changeRandomN bool, Fromid noise.ID) {
+func (p *Protocol) Relay(ctx context.Context, msg Message, changeRandomN bool, Fromid noise.ID, chainID string) {
 	// fmt.Println("Relay 1")
 	if changeRandomN {
 		msg.randomN = p.msgSentCounter
@@ -80,7 +81,7 @@ func (p *Protocol) Relay(ctx context.Context, msg Message, changeRandomN bool, F
 			fmt.Printf("Sending Relay Msg at Node %v - %v\n", p.node.Addr(), msg.String())
 		}
 	}
-
+	msg.ChainID = chainID
 	data := msg.Marshal()
 	dataHash := p.hash(data)
 	if !p.seen.Has(dataHash) {
@@ -165,7 +166,9 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 	// }
 
 	// p.seen.SetBig(self, nil) // Mark that we already have this data.
-
+	if !p.checkChaidID(msg.ChainID) {
+		return nil
+	}
 	if msg.To == p.node.ID().ID {
 		if p.Logging {
 			fmt.Printf("Relay Msg Received at Node %v From Peer %v - %v\n", p.node.Addr(), ctx.ID(), msg.String())
@@ -173,7 +176,7 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 		p.relayChan <- msg
 	} else {
 		// fmt.Println("Relay Handle Relaying further")
-		go p.Relay(context.TODO(), msg, false, ctx.ID())
+		go p.Relay(context.TODO(), msg, false, ctx.ID(), msg.ChainID)
 	}
 
 	// if p.events.OnGossipReceived != nil {
@@ -195,4 +198,23 @@ func (p *Protocol) hash(data []byte) []byte {
 
 func (p *Protocol) GetRelayChan() chan Message {
 	return p.relayChan
+}
+
+func (p *Protocol) checkChaidID(chainID string) bool {
+	if p.node.ChainID == chainID {
+		return true
+	}
+	myChaidSplit := strings.Split(p.node.ChainID, ".")
+	incomingChaidSplit := strings.Split(chainID, ".")
+
+	if len(incomingChaidSplit) == len(myChaidSplit)-1 {
+		for i := 0; i < len(incomingChaidSplit); i++ {
+			if incomingChaidSplit[i] != myChaidSplit[i] {
+				return false
+			}
+		}
+		return true
+	}
+
+	return false
 }

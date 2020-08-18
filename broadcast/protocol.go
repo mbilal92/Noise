@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"strings"
 	"sync/atomic"
 
 	"github.com/VictoriaMetrics/fastcache"
@@ -70,7 +71,7 @@ func (p *Protocol) Bind(node *noise.Node) error {
 // believes that the aforementioned peer has not received data before. A context may be provided to cancel Push, as it
 // blocks the current goroutine until the gossiping of a single message is done. Any errors pushing a message to a
 // particular peer is ignored.
-func (p *Protocol) Push(ctx context.Context, msg Message, changeRandomN bool, Fromid noise.ID) {
+func (p *Protocol) Push(ctx context.Context, msg Message, changeRandomN bool, Fromid noise.ID, chainID string) {
 	if changeRandomN {
 		msg.randomN = p.msgSentCounter
 		atomic.AddUint32(&p.msgSentCounter, 1)
@@ -78,7 +79,7 @@ func (p *Protocol) Push(ctx context.Context, msg Message, changeRandomN bool, Fr
 			fmt.Printf("Sending BroadCast Msg at Node %v - %v\n", p.node.Addr(), msg.String())
 		}
 	}
-
+	msg.ChainID = chainID
 	data := msg.Marshal()
 	// p.seen.SetBig(p.hash(p.node.ID(), data), nil)
 	dataHash := p.hash(data)
@@ -143,6 +144,9 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 	// self := p.hash(data)
 	// self := p.hash(p.node.ID(), data)
 	// p.seen.SetBig(self, nil) // Mark that we already have this data.
+	if !p.checkChaidID(msg.ChainID) {
+		return nil
+	}
 
 	p.relayChan <- msg
 	if p.Logging {
@@ -154,7 +158,7 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 	// 	}
 	// }
 
-	p.Push(context.Background(), msg, false, ctx.ID())
+	p.Push(context.Background(), msg, false, ctx.ID(), msg.ChainID)
 
 	return nil
 }
@@ -168,4 +172,23 @@ func (p *Protocol) hash(data []byte) []byte {
 
 func (p *Protocol) GetBroadcastChan() chan Message {
 	return p.relayChan
+}
+
+func (p *Protocol) checkChaidID(chainID string) bool {
+	if p.node.ChainID == chainID {
+		return true
+	}
+	myChaidSplit := strings.Split(p.node.ChainID, ".")
+	incomingChaidSplit := strings.Split(chainID, ".")
+
+	if len(incomingChaidSplit) == len(myChaidSplit)-1 {
+		for i := 0; i < len(incomingChaidSplit); i++ {
+			if incomingChaidSplit[i] != myChaidSplit[i] {
+				return false
+			}
+		}
+		return true
+	}
+
+	return false
 }
