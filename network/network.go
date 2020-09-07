@@ -62,7 +62,7 @@ func check(err error) {
 const printedLength = 8
 
 // New creates and returns a new network instance.
-func New(hostStr string, port uint16, privatekey noise.PrivateKey, chainId string, logger *zap.Logger, logging bool) (*Network, error) {
+func New(hostStr string, port uint16, privatekey noise.PrivateKey, chainID string, AcceptMsgFromParentChainIDFlag bool, logger *zap.Logger, logging bool) (*Network, error) {
 	// Set up node and policy.
 	host := net.ParseIP(hostStr)
 	if host == nil {
@@ -77,7 +77,8 @@ func New(hostStr string, port uint16, privatekey noise.PrivateKey, chainId strin
 		// noise.WithNodeAddress(*addressFlag),
 	)
 
-	node.SetChainID(chainId)
+	node.SetChainID(chainID)
+	node.SetAcceptMsgFromParentChainID(AcceptMsgFromParentChainIDFlag)
 	check(err)
 	events := kademlia.Events{
 		OnPeerAdmitted: func(id noise.ID) {
@@ -279,4 +280,8 @@ func (ntw *Network) RemovePeers() {
 
 func (ntw *Network) SetChainID(chainID string) {
 	ntw.node.SetChainID(chainID)
+}
+
+func (ntw *Network) SetAcceptMsgFromParentChainID(flag bool) {
+	ntw.node.SetAcceptMsgFromParentChainID(flag)
 }

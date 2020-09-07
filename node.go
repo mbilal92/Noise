@@ -26,11 +26,12 @@ import (
 type Node struct {
 	logger *zap.Logger
 
-	host               net.IP
-	externalIP         net.IP
-	port, externalPort uint16
-	addr               string
-	ChainID            string
+	host                       net.IP
+	externalIP                 net.IP
+	port, externalPort         uint16
+	addr                       string
+	ChainID                    string
+	AcceptMsgFromParentChainID bool
 
 	publicKey  PublicKey
 	privateKey PrivateKey
@@ -578,4 +579,8 @@ func (n *Node) CloseConnections() {
 
 func (n *Node) SetChainID(chainID string) {
 	n.ChainID = chainID
+}
+
+func (n *Node) SetAcceptMsgFromParentChainID(flag bool) {
+	n.AcceptMsgFromParentChainID = flag
 }

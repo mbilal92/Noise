@@ -204,17 +204,19 @@ func (p *Protocol) checkChaidID(chainID string) bool {
 	if p.node.ChainID == chainID {
 		return true
 	}
-	myChaidSplit := strings.Split(p.node.ChainID, ".")
-	incomingChaidSplit := strings.Split(chainID, ".")
 
-	if len(incomingChaidSplit) == len(myChaidSplit)-1 {
-		for i := 0; i < len(incomingChaidSplit); i++ {
-			if incomingChaidSplit[i] != myChaidSplit[i] {
-				return false
+	if p.node.AcceptMsgFromParentChainID {
+		myChaidSplit := strings.Split(p.node.ChainID, ".")
+		incomingChaidSplit := strings.Split(chainID, ".")
+
+		if len(incomingChaidSplit) == len(myChaidSplit)-1 {
+			for i := 0; i < len(incomingChaidSplit); i++ {
+				if incomingChaidSplit[i] != myChaidSplit[i] {
+					return false
+				}
 			}
+			return true
 		}
-		return true
 	}
-
 	return false
 }
